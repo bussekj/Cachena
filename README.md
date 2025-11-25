@@ -6,7 +6,6 @@ Team Name: Cachena
 4. [Project Tasks and Timeline](https://github.com/bussekj/Cachena/blob/main/Project_Tasks.xlsx)
 5. [ABET Concerns Essay](https://github.com/bussekj/Cachena/blob/main/Project_Tasks.xlsx)
 6. PPT Slideshow 
-7. Self-Assessment Essays 
-8. Professional Biographies  (Assignment #1)
-9. Budget
-10. Appendix
+7. [Self-Assessment Essays] (https://github.com/bussekj/Cachena/tree/main/self_assesement_essays)
+8. [Professional Biographies](https://github.com/bussekj/Cachena/tree/main/bios)
+9. [Appendix]()
