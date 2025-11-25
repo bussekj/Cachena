@@ -1,5 +1,7 @@
 # Team Contract
 
+## Team Name: Cachena
+
 ## Team Members / Roles
 - Corey Sloan  | sloancb@mail.uc.edu
     - Lead Software Development
