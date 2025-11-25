@@ -42,6 +42,3 @@ The GPS module will be a PCB design that attempts to be as thin as possible. Thi
 - GPS Module - Gathers satellite 
 - User Application - Takes inputs from both GPS module and User to gather GPS data and configure GPS module
 
-
-
-
