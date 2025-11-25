@@ -8,4 +8,4 @@ Team Name: Cachena
 6. PPT Slideshow 
 7. [Self-Assessment Essays] (https://github.com/bussekj/Cachena/tree/main/self_assesement_essays)
 8. [Professional Biographies](https://github.com/bussekj/Cachena/tree/main/bios)
-9. [Appendix]()
+9. [Appendices](https://github.com/bussekj/Cachena/tree/main/appendices)
