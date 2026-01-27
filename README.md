@@ -1,10 +1,8 @@
-1. [Team Description](https://github.com/bussekj/Cachena/blob/main/contract.md)
-2. [Project Description](https://github.com/bussekj/Cachena/blob/main/Project-Description.md)
-3. [User Stories and Design Diagrams](https://github.com/bussekj/Cachena/blob/main/User_Stories.md)
-4. [Project Tasks and Timeline](https://github.com/bussekj/Cachena/blob/main/project_tasks/Project_Tasks.xlsx)
-5. [ABET Concerns Essay](https://github.com/bussekj/Cachena/blob/main/ABET_Constraints.pdf)
-6. [PPT Slideshow](https://github.com/bussekj/Cachena/tree/main/PPT_Overview)
-7. [Self-Assessment Essays](https://github.com/bussekj/Cachena/tree/main/self_assesement_essays)
-8. [Professional Biographies](https://github.com/bussekj/Cachena/tree/main/bios)
-9. [Appendices](https://github.com/bussekj/Cachena/tree/main/appendices)
-10. [Budget](https://github.com/bussekj/Cachena/blob/dcc8b01d892dc45b4447da6cb6c03b9048438435/Cachena%20Budget.csv)
+Initial Code Commit for Cachena 
+
+Project Description:
+
+This project focuses on designing a sleek and durable GPS tracking card for personal object monitoring. The device prioritizes usability, offering reliable location data with reasonable certainty and battery life across most environments. Crucially, the system integrates advanced hardware and software security, featuring two-way encryption and mandatory device registration to protect user data from attackers. To address the ethical implications of tracking, a mechanism for device discoverability will be implemented. The project is committed to minimizing environmental impact and using ethically sourced parts, ensuring a responsible and secure solution.
+
+Shared Folder:
+https://drive.google.com/drive/folders/1_-bSy-H6svkQHuPakMtvMS8zOFOr2NBE
