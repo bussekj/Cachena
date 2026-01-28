@@ -1,0 +1,3 @@
+GPGSV - GPS satellites in view 
+GPGLL - Geographic position
+GPRMC - GPS specific information

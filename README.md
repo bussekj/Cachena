@@ -6,3 +6,10 @@ This project focuses on designing a sleek and durable GPS tracking card for pers
 
 Shared Folder:
 https://drive.google.com/drive/folders/1_-bSy-H6svkQHuPakMtvMS8zOFOr2NBE
+
+
+Installation Instructions (Linux based):
+
+- Install [Podman](https://podman.io/)
+
+- 
