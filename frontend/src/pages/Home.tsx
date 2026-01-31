@@ -1,27 +1,108 @@
 import React, { useEffect, useState } from 'react';
-import { postUser } from '../API/userAPI.ts';
-import { Button } from '@mui/material';                // UI component for layout
-import test from 'node:test';
-
+import * as userAPI from '../API/userAPI.ts';
+import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
+import { Button, CircularProgress, Paper, TextField, Typography } from '@mui/material';
 
 const Home: React.FC = () => {
+
+  const [input1, setInput1] = useState('');
+  const [input2, setInput2] = useState('');
+  const [input3, setInput3] = useState('');
+  const [input4, setInput4] = useState('');
+
+  const inputForm =
+      <div style={{display:"flex"}}>
+            <TextField className='Form'
+                label="input1"
+                value={input1}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setInput1(event.target.value);
+                }}
+            />
+            <TextField className='Form'
+                label="input2"
+                value={input2}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setInput2(event.target.value);
+                }}
+            />
+            <TextField className='Form'
+                label="input3"
+                value={input3}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setInput3(event.target.value);
+                }}
+            />
+            <TextField className='Form'
+                label="input4"
+                value={input4}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setInput4(event.target.value);
+                }}
+            />
+      </div>
+
+  // --- User API calls
   const handlePostUser = async () => {
-        await postUser(
+        await userAPI.postUser(
           {
-            name:"test",
-            role:"test",
-            email:"test",
-            password:"test"
+            name:input1,
+            role:input2,
+            email:input3,
+            password:input4
           }
         )
-  
   };
-    return (
-          <div className="main">
-              <button onClick={handlePostUser}>
-                  Register
-              </button>
-          </div>
-    );
+  const handleGetUser = async () => {
+        await userAPI.getUser(
+          {
+            name:input1,
+            password:input2,
+          }
+        )
+  };
+
+  const userButtons =
+    <div>
+      <Button onClick={handlePostUser}>
+          Post User
+      </Button>
+      <Button onClick={handleGetUser}>
+          Get User
+      </Button>
+    </div>
+
+  // --- TUO API calls
+  const handlePostTUO = async () => {
+        await TUOAPI.postTUO(
+          {
+            name :  input1,
+            description : input2,
+            is_locked : false
+          }
+        )
+  };
+  const handleGetTUO = async () => {
+        await TUOAPI.getTUO( input1 )
+  };
+  const trackerButtons =
+    <div>
+      <Button onClick={handlePostTUO}>
+          Post TUO
+      </Button>
+      <Button onClick={handleGetTUO}>
+          Get Tracker
+      </Button>
+    </div>
+
+  return (
+        <div className="main">
+          <br/>
+            {inputForm}
+          <br/>
+          {userButtons}
+          {trackerButtons}
+        </div>
+  );
 };
 export default Home;

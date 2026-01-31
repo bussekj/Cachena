@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button, Typography, makeStyles } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import {Paper} from '../styling/components.tsx';
 
 const NotFoundPage: React.FC = () => {
     const navigate = useNavigate();

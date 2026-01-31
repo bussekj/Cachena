@@ -3,6 +3,8 @@
     "apiKey": "your-api-key",
     "header": "your-header",
     "endpoint" : {
-        "user": "/api/user"
+        "user": "/api/user",
+        "tracker": "/api/tracker",
+        "trackedUserObject": "/api/trackedUserObject"
     }
 }

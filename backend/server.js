@@ -5,6 +5,8 @@ const sequelize = require('./config/database');
 const jwtAuth = require('./middleware/authMiddleware'); 
 
 const userRoutes = require('./routes/userRoutes');
+const trackerRoutes = require('./routes/trackerRoutes');
+const trackedUserObject = require('./routes/trackedUserObjectRoutes');
 
 const app = express();
 
@@ -15,6 +17,8 @@ app.use(bodyParser.json());
 app.use(jwtAuth);
 
 app.use('/api/user', userRoutes);
+app.use('/api/tracker', trackerRoutes);
+app.use('/api/trackedUserObject', trackedUserObject);
 
 sequelize.sync().then(() => {
     app.listen(process.env.PORT, () => {

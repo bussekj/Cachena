@@ -4,8 +4,8 @@ const userController = require('../controllers/userController');
 const jwtAuth = require('../middleware/authMiddleware');
 
 router.get('/', userController.test);
-router.post('/register', userController.register);
-// router.post('/login', userController.login);
+router.post('/postUser', userController.register);
+router.post('/getUser', userController.getUser);
 
 // // Protected routes
 // router.get('/fetchAll', jwtAuth, userController.fetchAll);
