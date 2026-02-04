@@ -70,6 +70,9 @@ const Home: React.FC = () => {
       <Button onClick={handleGetUser}>
           Get User
       </Button>
+      <Button onClick={handleGetUser}>
+          Get TUOs by User
+      </Button>
     </div>
 
   // --- TUO API calls
@@ -85,13 +88,25 @@ const Home: React.FC = () => {
   const handleGetTUO = async () => {
         await TUOAPI.getTUO( input1 )
   };
+  const handleGetTrackersbyUser = async () => {
+        await TUOAPI.getTUOsByUser(input1)
+  };
+  const handleAssignTUO = async () => {
+        await TUOAPI.assignTUO(input1,input2)
+  };
   const trackerButtons =
     <div>
       <Button onClick={handlePostTUO}>
           Post TUO
       </Button>
       <Button onClick={handleGetTUO}>
-          Get Tracker
+          Get TUO
+      </Button>
+      <Button onClick={handleGetTrackersbyUser}>
+          Get TUO by User
+      </Button>
+      <Button onClick={handleAssignTUO}>
+          Assign TUO to User
       </Button>
     </div>
 

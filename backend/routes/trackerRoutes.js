@@ -8,6 +8,7 @@ router.get('/id', trackerController.getById);
 
 router.post('/register', trackerController.register);
 router.post('/update', trackerController.update);
+router.post('/assign', trackerController.assign);
 
 
 module.exports = router;

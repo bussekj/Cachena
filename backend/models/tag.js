@@ -2,11 +2,12 @@ module.exports = (sequelize, DataTypes) => {
 const Tag = sequelize.define(
         'tag', 
         {
-            color: {
+            name: {
                 type: DataTypes.STRING,
-                allowNull: false
+                allowNull: false,
+                unique: true
             },
-            description: {
+            color: {
                 type: DataTypes.STRING,
                 allowNull: false
             },

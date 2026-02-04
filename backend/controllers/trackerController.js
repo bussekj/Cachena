@@ -32,6 +32,19 @@ exports.register = async (req, res) => {
     }
 };
 
+exports.assign = async(req, res) => {
+    const { trackerId, TUOId } = req.body;
+    try {
+        let trackedUserObject = await TrackedUserObject.findByPk(TUOId)
+        trackedUserObject.addTracker(trackerId);
+        trackedUserObject.save()
+        
+        return res.status(201).json(trackedUserObject);
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 exports.update = async(req, res) => {
     const { id, location, battery } = req.body;
 

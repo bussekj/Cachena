@@ -1,6 +1,5 @@
-import {request} from './requests.ts'
+import {request} from './requests.ts';
 import config from '../config.json';
-import { NavigateFunction } from "react-router-dom";
 import { sendMessage } from '../styling/components.tsx';
 
 export interface trackerData {
@@ -12,26 +11,8 @@ export interface trackerData {
 
 // -- GET --
 export async function getTracker(trackerId : string):Promise<any>{    
-
-    await request(config.endpoint.tracker + '/' + trackerId, 'GET')
-        .then((response : any) => {
-            if(response != null){
-                console.log(response)
-                sendMessage('success', response)
-            }
-            else {
-                console.log("data is null")
-            }
-        })
-        .catch((errorMessage) => {
-            console.log("error", errorMessage);
-            sendMessage('error', "Login  Failed:" + errorMessage) 
-        });
-};
-
-export async function getTrackersByUser(userId :string):Promise<any>{    
-
-    await request(config.endpoint.tracker + '/' + userId, 'GET')
+    let params = "?id=" + trackerId;
+    await request(config.endpoint.tracker + '/id' + params, 'GET')
         .then((response : any) => {
             if(response != null){
                 console.log(response)
@@ -48,7 +29,6 @@ export async function getTrackersByUser(userId :string):Promise<any>{
 };
 
 // -- POST -- 
-
 export async function postTracker(data : trackerData):Promise<any>{
     let trackerId = data.trackerId
     let location = data.location

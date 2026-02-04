@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 exports.test = async (req, res) => {
     try {
         console.log("Touched test")
-        return res.status(200).json({resp:"You Got Me!"});
+        return res.status(200).json({resp:"You Got User API!"});
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

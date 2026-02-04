@@ -1,6 +1,5 @@
 import {request} from './requests.ts'
 import config from '../config.json';
-import { NavigateFunction } from "react-router-dom";
 import { sendMessage } from '../styling/components.tsx';
 
 export interface TUOData {
@@ -24,27 +23,27 @@ export async function getTUO(TUOId : string):Promise<any>{
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);
-            sendMessage('error', "Login  Failed:" + errorMessage) 
+            sendMessage('error', "Fetch Failed:" + errorMessage) 
         });
 };
 
-// export async function getTUOsByUser(userId :string):Promise<any>{    
-
-//     await request(config.endpoint.trackedUserObject + '/user/' + userId, 'GET')
-//         .then((response : any) => {
-//             if(response != null){
-//                 console.log(response)
-//                 sendMessage('success', response)
-//             }
-//             else {
-//                 console.log("data is null")
-//             }
-//         })
-//         .catch((errorMessage) => {
-//             console.log("error", errorMessage);
-//             sendMessage('error', "Login  Failed:" + errorMessage) 
-//         });
-// };
+export async function getTUOsByUser(userId :string):Promise<any>{    
+    let params = "?userId=" + userId;
+    await request(config.endpoint.trackedUserObject + '/user' + params, 'GET')
+        .then((response : any) => {
+            if(response != null){
+                console.log(response)
+                sendMessage('success', "Fetch Succesful")
+            }
+            else {
+                console.log("data is null")
+            }
+        })
+        .catch((errorMessage) => {
+            console.log("error", errorMessage);
+            sendMessage('error', "Fetch Failed:" + errorMessage) 
+        });
+};
 
 // -- POST -- 
 export async function postTUO(data : TUOData):Promise<any>{
@@ -58,6 +57,19 @@ export async function postTUO(data : TUOData):Promise<any>{
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);            
-            sendMessage('error', "Registration  Failed:" + errorMessage)
+            sendMessage('error', "Tracker Registration Failed:" + errorMessage)
+        });
+};
+
+export async function assignTUO(TUOId:string, userId:string):Promise<any>{
+
+    await request(config.endpoint.trackedUserObject + '/assign', 'POST', { TUOId, userId })
+        .then((response) => {
+            console.log("response", response)
+            sendMessage('success', "Tracker Assignment Successful")
+        })
+        .catch((errorMessage) => {
+            console.log("error", errorMessage);            
+            sendMessage('error', "Tracker Assignment Failed:" + errorMessage)
         });
 };
