@@ -1,0 +1,12 @@
+GP TXT - GPS module information
+GP SV - GPS satellites in view 
+GP GLL - Geographic position
+GP RMC - Time, date, position, course and speed data
+
+
+Received: $GPGGA,212204.00,3908.53679,N,08437.66193,W,1,05,2.01,284.3,M,-33.2,M,,*62
+
+Received: $GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73
+
+39N,084W
+3908.54058N,08437.66081W

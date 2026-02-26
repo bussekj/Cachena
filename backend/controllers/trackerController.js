@@ -50,6 +50,11 @@ exports.update = async(req, res) => {
 
     try {
         let tracker = await Tracker.findOne({where : { id }})
+        if (!tracker) {
+            tracker = await Tracker.create({  id, location, battery });
+            return res.status(201).json(tracker);
+        }
+
         if (tracker != "")
             tracker.location = location;
         if (battery != "")

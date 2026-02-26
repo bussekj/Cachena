@@ -1,7 +1,7 @@
 const jwt = import('jsonwebtoken');
 
 module.exports = function (req, res, next) {
-    //TODO deprecated because siginng and handling does not work
+    //TODO deprecated because signing and handling does not work
     // const token = req.header('Authorization');
     // if (!token) return res.status(401).json({ message: 'Access Denied. No token provided.' });
 
