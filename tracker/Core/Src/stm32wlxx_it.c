@@ -23,6 +23,8 @@
 #include "stm32wlxx_it.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "uart_echo.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -196,6 +198,8 @@ void LPTIM1_IRQHandler(void)
 
   /* USER CODE END LPTIM1_IRQn 1 */
 }
+void USART1_IRQHandler(void)        { UartEcho_UART_IRQHandler(); }
+void DMA1_Channel1_IRQHandler(void) { UartEcho_DMA_IRQHandler();  }
 
 /* USER CODE BEGIN 1 */
 

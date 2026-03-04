@@ -1,4 +1,3 @@
-/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -19,8 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usart.h"
+#include "uart_echo.h"
 #include "cmsis_os.h"
-
+#include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -44,6 +45,7 @@
 LPTIM_HandleTypeDef hlptim1;
 
 osThreadId LED_TaskHandle;
+osThreadId ECHO_TaskHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -53,6 +55,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_LPTIM1_Init(void);
 void StartLedTask(void const * argument);
+void StartEchoTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -69,32 +72,21 @@ void StartLedTask(void const * argument);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
   /* Configure the system clock */
   SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_LPTIM1_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
+  
+  MX_USART1_UART_Init();
+  HAL_UART_MspInit(&huart1);
+  UartEcho_Init();
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -115,10 +107,11 @@ int main(void)
   /* Create the thread(s) */
   /* definition and creation of LED_Task */
   osThreadDef(LED_Task, StartLedTask, osPriorityNormal, 0, 128);
+  /* USER CODE BEGIN RTOS_THREADS */
   LED_TaskHandle = osThreadCreate(osThread(LED_Task), NULL);
 
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  osThreadDef(ECHO_TASK, StartEchoTask, osPriorityNormal, 0, 128);
+  ECHO_TaskHandle = osThreadCreate(osThread(ECHO_TASK), NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -126,14 +119,9 @@ int main(void)
 
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
   }
-  /* USER CODE END 3 */
 }
 
 /**
@@ -185,14 +173,6 @@ void SystemClock_Config(void)
   */
 static void MX_LPTIM1_Init(void)
 {
-
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
   hlptim1.Instance = LPTIM1;
   hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
   hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
@@ -206,10 +186,6 @@ static void MX_LPTIM1_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
 }
 
 /**
@@ -233,23 +209,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 }
 
-/* USER CODE BEGIN 4 */
 int32_t LED_control(int value) {
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, value);
   return 0;
 }
-/* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartLedTask */
-/**
-  * @brief  Function implementing the LED_Task thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-/* USER CODE END Header_StartLedTask */
 void StartLedTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -257,17 +223,24 @@ void StartLedTask(void const * argument)
   for(;;)
   {
     LED_control(0);
-    HAL_Delay(1000);
+    osDelay(1000);
     LED_control(1);
-    osDelay(100);
+    osDelay(1000);
   }
   /* USER CODE END 5 */
 }
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+void StartEchoTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    UartEcho_Process();
+  }
+  /* USER CODE END 5 */
+}
+
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */

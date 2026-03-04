@@ -186,12 +186,16 @@ set ( PROJECT_SOURCES
     Utilities/trace/adv_trace/stm32_adv_trace.c
     Core/Src/app_freertos.c
     Core/Src/main.c
+    Core/Src/dma.c
+    Core/Src/rtc.c
+    Core/Src/usart.c
+    Core/Src/uart_echo.c
     Core/Src/stm32wlxx_hal_msp.c
     Core/Src/stm32wlxx_it.c
     Core/Src/syscalls.c
     Core/Src/sysmem.c
     Core/Src/system_stm32wlxx.c
-	Core/Startup/startup_stm32wle5jcix.s
+	  Core/Startup/startup_stm32wle5jcix.s
 )
 
 set (PROJECT_DEFINES
