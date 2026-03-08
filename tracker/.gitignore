@@ -1,0 +1,10 @@
+config_default/
+# STM32CubeIDE generated .gitignore file
+# Ignore build output folders
+Debug/
+
+*.elf
+*.map
+*.bin
+*.hex
+*.o

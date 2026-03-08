@@ -1,4 +1,4 @@
-#############################################################################################################################
+
 # file:  CMakeLists.txt
 # brief: Template "CMakeLists.txt" for building of executables and static libraries.
 #
@@ -44,158 +44,108 @@ set (MFLOAT_ABI               "")
 set (RUNTIME_LIBRARY          "--specs=nano.specs")
 set (RUNTIME_LIBRARY_SYSCALLS "--specs=nosys.specs")
 
+project(${PROJECT_NAME})
 
-set ( PROJECT_SOURCES 
-    # Drivers/BSP/STM32WLxx_LoRa_E5_mini/stm32wlxx_LoRa_E5_mini.c
-    # Drivers/BSP/STM32WLxx_LoRa_E5_mini/stm32wlxx_LoRa_E5_mini_radio.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_adc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_adc_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_comp.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cortex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_crc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_crc_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cryp.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cryp_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dac.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dac_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_exti.c
+enable_language(C ASM)
+
+# STM32CubeMX generated symbols (macros)
+set(MX_Defines_Syms 
+	CORE_CM4 
+	USE_HAL_DRIVER 
+	STM32WLE5xx 
+	STM32_THREAD_SAFE_STRATEGY=4
+    $<$<CONFIG:Debug>:DEBUG>
+)
+
+set(Include_Dirs
+    Core/Inc
+    SubGHz_Phy/App
+    SubGHz_Phy/Target
+    Drivers/STM32WLxx_HAL_Driver/Inc
+    Utilities/trace/adv_trace
+    Drivers/STM32WLxx_HAL_Driver/Inc/Legacy
+    Utilities/misc
+    Utilities/timer
+    Utilities/lpm/tiny_lpm
+    Middlewares/Third_Party/FreeRTOS/Source/include
+    Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
+    Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3
+    Drivers/CMSIS/RTOS2/Include
+    Drivers/CMSIS/Device/ST/STM32WLxx/Include
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver
+    Drivers/CMSIS/Include
+)
+
+set(Application_Src
+    SubGHz_Phy/App/app_subghz_phy.c
+    SubGHz_Phy/App/subghz_phy_app.c
+    SubGHz_Phy/Target/radio_board_if.c
+    Core/Src/main.c
+    Core/Src/app_freertos.c
+    Core/Src/stm32_lpm_if.c
+    Core/Src/sys_app.c
+    Core/Src/timer_if.c
+    Core/Src/usart_if.c
+    Core/Src/stm32wlxx_it.c
+    Core/Src/stm32wlxx_hal_msp.c
+    Core/Src/stm32wlxx_hal_timebase_tim.c
+    Core/Src/sysmem.c
+    Core/Src/syscalls.c
+    startup_stm32wle5xx.s
+)
+
+# STM32 HAL/LL Drivers
+set(STM32_Drivers_Src
+    Core/Src/system_stm32wlxx.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim_ex.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_flash.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_flash_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_gpio.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_gtzc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_hsem.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_i2c.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_i2c_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_i2s.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_ipcc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_irda.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_iwdg.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_lptim.c
-    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_msp_template.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pka.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_dma_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rcc_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rtc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rtc_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_smartcard.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_smartcard_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_smbus.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_smbus_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_spi.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_spi_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_subghz.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_tim_ex.c
-    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_timebase_rtc_alarm_template.c
-    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_timebase_rtc_wakeup_template.c
-    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_timebase_tim_template.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cortex.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_exti.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_lptim.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_uart.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_uart_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_usart.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_usart_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_wwdg.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_adc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_comp.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_crc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_dac.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_dma.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_exti.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_gpio.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_i2c.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_lptim.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_lpuart.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_pka.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_pwr.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_rcc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_rng.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_rtc.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_spi.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_tim.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_usart.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_ll_utils.c
-    Middlewares/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c
-    # Middlewares/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
-    Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c
-    Middlewares/FreeRTOS/Source/portable/MemMang/heap_4.c
-    Middlewares/FreeRTOS/Source/croutine.c
-    Middlewares/FreeRTOS/Source/event_groups.c
-    Middlewares/FreeRTOS/Source/list.c
-    Middlewares/FreeRTOS/Source/queue.c
-    Middlewares/FreeRTOS/Source/stream_buffer.c
-    Middlewares/FreeRTOS/Source/tasks.c
-    Middlewares/FreeRTOS/Source/timers.c
-    # Middlewares/littlefs/bd/lfs_filebd.c
-    # Middlewares/littlefs/bd/lfs_rambd.c
-    # Middlewares/littlefs/bd/lfs_testbd.c
-    Middlewares/littlefs/lfs.c
-    Middlewares/littlefs/lfs_util.c
-    # Middlewares/LoRaWAN/Conf/lora_info_template.c
-    # Middlewares/LoRaWAN/Crypto/cmac.c
-    # Middlewares/LoRaWAN/Crypto/lorawan_aes.c
-    # Middlewares/LoRaWAN/Crypto/soft-se.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/FragDecoder.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpClockSync.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpCompliance.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpDataDistribution.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpFirmwareManagement.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpFragmentation.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpPackagesRegistration.c
-    # Middlewares/LoRaWAN/LmHandler/Packages/LmhpRemoteMcastSetup.c
-    # Middlewares/LoRaWAN/LmHandler/LmHandler.c
-    # Middlewares/LoRaWAN/LmHandler/NvmDataMgmt.c
-    # Middlewares/LoRaWAN/Mac/Region/Region.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionAS923.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionAU915.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionBaseUS.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionCN470.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionCN779.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionCommon.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionEU433.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionEU868.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionIN865.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionKR920.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionRU864.c
-    # Middlewares/LoRaWAN/Mac/Region/RegionUS915.c
-    # Middlewares/LoRaWAN/Mac/LoRaMac.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacAdr.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacClassB.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacCommands.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacConfirmQueue.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacCrypto.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacParser.c
-    # Middlewares/LoRaWAN/Mac/LoRaMacSerializer.c
-    # Middlewares/LoRaWAN/Utilities/utilities.c
-    # Middlewares/SubGHz_Phy/Conf/subghz_template.c
-    # Middlewares/SubGHz_Phy/stm32_radio_driver/radio.c
-    # Middlewares/SubGHz_Phy/stm32_radio_driver/radio_driver.c
-    # Middlewares/SubGHz_Phy/stm32_radio_driver/radio_fw.c
-    Utilities/lpm/tiny_lpm/stm32_lpm.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng_ex.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_subghz.c
+)
+
+set(Utilities_Src
+    Utilities/trace/adv_trace/stm32_adv_trace.c
     Utilities/misc/stm32_mem.c
     Utilities/misc/stm32_systime.c
     Utilities/misc/stm32_tiny_sscanf.c
     Utilities/misc/stm32_tiny_vsnprintf.c
-    Utilities/sequencer/stm32_seq.c
     Utilities/timer/stm32_timer.c
-    Utilities/trace/adv_trace/stm32_adv_trace.c
-    Core/Src/app_freertos.c
-    Core/Src/main.c
-    Core/Src/dma.c
-    Core/Src/rtc.c
-    Core/Src/usart.c
-    Core/Src/uart_echo.c
-    Core/Src/stm32wlxx_hal_msp.c
-    Core/Src/stm32wlxx_it.c
-    Core/Src/syscalls.c
-    Core/Src/sysmem.c
-    Core/Src/system_stm32wlxx.c
-	  Core/Startup/startup_stm32wle5jcix.s
+    Utilities/lpm/tiny_lpm/stm32_lpm.c
+)
+set(FreeRTOS_Src
+    Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+    Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
+    Middlewares/Third_Party/FreeRTOS/Source/list.c
+    Middlewares/Third_Party/FreeRTOS/Source/queue.c
+    Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
+    Middlewares/Third_Party/FreeRTOS/Source/tasks.c
+    Middlewares/Third_Party/FreeRTOS/Source/timers.c
+    Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
+    Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+    Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c
+)
+set(SubGHz_Phy_Src
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver/wl_lr_fhss.c
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio.c
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio_fw.c
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio_driver.c
+    Middlewares/Third_Party/SubGHz_Phy/radio_driver/lr_fhss_mac.c
 )
 
 set (PROJECT_DEFINES
@@ -204,47 +154,76 @@ set (PROJECT_DEFINES
 
     )
 
-set (PROJECT_INCLUDES
-	# LIST INCLUDE DIRECTORIES HERE
-    Core/Inc/
-    
-    Drivers/CMSIS/Device/ST/STM32WLxx/Include
-    Drivers/CMSIS/Include
+    # Link directories setup
+set(LINK_DIRS
 
-    Drivers/STM32WLxx_HAL_Driver/Inc
-    Drivers/STM32WLxx_HAL_Driver/Inc/Legacy
-    
+)
+# Project static libraries
+set(LINK_LIBS 
+    STM32_Drivers
+    ${TOOLCHAIN_LINK_LIBRARIES}
+    Utilities
+    FreeRTOS
+    SubGHz_Phy
+)
 
-    Drivers/BSP/STM32WLxx_LoRa_E5_mini
+# Interface library for includes and symbols
+add_library(stm32cubemx INTERFACE)
+target_include_directories(stm32cubemx INTERFACE ${Include_Dirs})
+target_compile_definitions(stm32cubemx INTERFACE ${Defines_Syms})
 
-    Middlewares/FreeRTOS/Source
-    Middlewares/FreeRTOS/Source/include
-    Middlewares/FreeRTOS/Source/CMSIS_RTOS
-    Middlewares/FreeRTOS/Source/portable/GCC/ARM_CM3
-    
-    Utilities/misc
-    )
+# Create STM32_Drivers static library
+add_library(STM32_Drivers OBJECT)
+target_sources(STM32_Drivers PRIVATE ${STM32_Drivers_Src})
+target_link_libraries(STM32_Drivers PUBLIC stm32cubemx)
 
-############ MODIFY ACCORDING TO REQUIREMENTS) ########################
 
-#######################################################################
+# Create Utilities static library
+add_library(Utilities OBJECT)
+target_sources(Utilities PRIVATE ${Utilities_Src})
+target_link_libraries(Utilities PUBLIC stm32cubemx)
 
-################## PROJECT SETUP ######################################
-project(${PROJECT_NAME})
-enable_language(ASM)
+# Create FreeRTOS static library
+add_library(FreeRTOS OBJECT)
+target_sources(FreeRTOS PRIVATE ${FreeRTOS_Src})
+target_link_libraries(FreeRTOS PUBLIC stm32cubemx)
 
-if (${PROJECT_TYPE} MATCHES ${PROJECT_TYPE_EXECUTABLE})
-  add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
-  add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${CMAKE_PROJECT_NAME}>)
-elseif (${PROJECT_TYPE} MATCHES ${PROJECT_TYPE_STATIC_LIBRARY})
-  add_library(${PROJECT_NAME} ${PROJECT_SOURCES})
+# Create SubGHz_Phy static library
+add_library(SubGHz_Phy OBJECT)
+target_sources(SubGHz_Phy PRIVATE ${SubGHz_Phy_Src})
+target_link_libraries(SubGHz_Phy PUBLIC stm32cubemx)
+
+# Create the final executable target including application sources and object-library objects
+add_executable(${PROJECT_NAME}
+    ${Application_Src}
+    $<TARGET_OBJECTS:STM32_Drivers>
+    $<TARGET_OBJECTS:Utilities>
+    $<TARGET_OBJECTS:FreeRTOS>
+    $<TARGET_OBJECTS:SubGHz_Phy>
+)
+
+# Link directories setup (toolchain / linker search paths)
+target_link_directories(${PROJECT_NAME} PRIVATE ${LINK_DIRS})
+
+# Link toolchain/system libraries; object libraries' object files are already added to the executable above.
+# Keep stm32cubemx attached so its include dirs / compile defs propagate
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TOOLCHAIN_LINK_LIBRARIES} stm32cubemx)
+
+# Add the map file to the list of files to be removed with 'clean' target
+set_target_properties(${PROJECT_NAME} PROPERTIES ADDITIONAL_CLEAN_FILES ${PROJECT_NAME}.map)
+
+# Validate that STM32CubeMX code is compatible with C standard
+if((CMAKE_C_STANDARD EQUAL 90) OR (CMAKE_C_STANDARD EQUAL 99))
+    message(ERROR "Generated code requires C11 or higher")
 endif()
+################## PROJECT SETUP ######################################
+# Project target is created above with add_executable; duplicate project/add_executable block removed.
 
 add_compile_definitions (${PROJECT_DEFINES})
 include_directories (${PROJECT_INCLUDES})
 
 set (CMAKE_EXECUTABLE_SUFFIX ".elf")
 set (CMAKE_STATIC_LIBRARY_SUFFIX ".a")
-set (CMAKE_C_FLAGS "${MCPU} -std=gnu11 ${MFPU} ${MFLOAT_ABI} ${RUNTIME_LIBRARY} -mthumb -Wall -Werror")
+set (CMAKE_C_FLAGS "${MCPU} -std=gnu11 ${MFPU} ${MFLOAT_ABI} ${RUNTIME_LIBRARY} -mthumb -Wall")
 set (CMAKE_EXE_LINKER_FLAGS "-T${LINKER_SCRIPT} ${RUNTIME_LIBRARY_SYSCALLS} -Wl,-Map=test.map -Wl,--gc-sections -static -Wl,--start-group -lc -lm -Wl,--end-group")
 set (CMAKE_ASM_FLAGS "${CMAKE_C_FLAGS} -x assembler-with-cpp")

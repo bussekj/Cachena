@@ -3,6 +3,17 @@
   * @file    stm32wlxx_ll_utils.h
   * @author  MCD Application Team
   * @brief   Header file of UTILS LL module.
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2020 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                      ##### How to use this driver #####
@@ -15,17 +26,6 @@
       (+) PLL configuration functions
 
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                       opensource.org/licenses/BSD-3-Clause
-  *
   ******************************************************************************
   */
 
@@ -178,7 +178,7 @@ typedef struct
   */
 #define LL_UTILS_PACKAGETYPE_UFBGA73        0x00000000U /*!< UFBGA73  package type */
 #define LL_UTILS_PACKAGETYPE_WLCSP59        0x00000002U /*!< WLSCSP59 package type */
-#define LL_UTILS_PACKAGETYPE_UFQFPN48       0x00000010U /*!< UFQPFN48 package type */
+#define LL_UTILS_PACKAGETYPE_UFQFPN48       0x0000000AU /*!< UFQPFN48 package type */
 /**
   * @}
   */
@@ -262,7 +262,7 @@ __STATIC_INLINE uint32_t LL_GetPackageType(void)
   *         @ref LL_RCC_GetSystemClocksFreq (HCLK2_Frequency field))
   * @note   When a RTOS is used, it is recommended to avoid changing the SysTick
   *         configuration by calling this function, for a delay use rather osDelay RTOS service.
-  * @param  Ticks Number of ticks
+  * @param  Ticks Frequency of Ticks (Hz)
   * @retval None
   */
 #else
@@ -272,7 +272,7 @@ __STATIC_INLINE uint32_t LL_GetPackageType(void)
   *         @ref LL_RCC_GetSystemClocksFreq (HCLK1_Frequency field))
   * @note   When a RTOS is used, it is recommended to avoid changing the SysTick
   *         configuration by calling this function, for a delay use rather osDelay RTOS service.
-  * @param  Ticks Number of ticks
+  * @param  Ticks Frequency of Ticks (Hz)
   * @retval None
   */
 #endif /* CORE_CM0PLUS */
@@ -331,5 +331,3 @@ ErrorStatus LL_PLL_ConfigSystemClock_HSE(LL_UTILS_PLLInitTypeDef *UTILS_PLLInitS
 #endif
 
 #endif /* __STM32WLxx_LL_UTILS_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
