@@ -26,6 +26,7 @@
 #include "subghz_phy_app.h"
 #include "sys_app.h"
 #include "usart_if.h"
+#include "tracker_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,17 +59,10 @@ RNG_HandleTypeDef hrng;
 
 SUBGHZ_HandleTypeDef hsubghz;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
 /* USER CODE BEGIN PV */
-osThreadId_t echoTaskHandle;
-const osThreadAttr_t echoTask_attributes = {
-  .name = "echoTask",
+osThreadId_t blinkerTaskHandle;
+const osThreadAttr_t blinkerTask_attributes = {
+  .name = "blinkerTask",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
@@ -77,15 +71,12 @@ const osThreadAttr_t echoTask_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void StartDefaultTask(void *argument);
-void StartEchoTask(void * argument);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -94,7 +85,6 @@ void StartEchoTask(void * argument);
   */
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -157,8 +147,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-  echoTaskHandle = osThreadNew(StartEchoTask, NULL, &echoTask_attributes);
+  blinkerTaskHandle = osThreadNew(StartBlinkerTask, NULL, &blinkerTask_attributes);
+   /* USER CODE BEGIN RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -373,7 +363,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 96000;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -533,53 +523,6 @@ static void MX_GPIO_Init(void)
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
-}
-
-/* USER CODE BEGIN 4 */
-void StartEchoTask(void * argument)
-{
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  int delay = 500;
-  uint32_t random_num = 0;
-  APP_LOG(TS_OFF, VLEVEL_M, "Echo Task Started\r\n");
-  // UartEcho_Process();
-  for(;;)
-  {
-    HAL_RNG_GenerateRandomNumber(&hrng, &random_num);
-    // APP_LOG(TS_OFF, VLEVEL_M, "\nTick Rand:%d\n\r", random_num % 100);
-    // UartEcho_Process();
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, 0);
-    osDelay(delay);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, 1);
-    osDelay(delay);
-  }
-  /* USER CODE END 5 */
-}
-
-/* USER CODE END 4 */
-
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  *//* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
-  /* init code for SubGHz_Phy */
-  // MX_SubGHz_Phy_Init();
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  int delay = 500;
-  for(;;)
-  {
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
-    osDelay(delay);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
-    osDelay(delay);
-  }
-  /* USER CODE END 5 */
 }
 
 /**

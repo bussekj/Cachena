@@ -36,12 +36,14 @@ extern DMA_HandleTypeDef hdma_usart1_tx;
   * @brief UART handle
   */
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 
 /**
   * @brief buffer to receive 1 character
   */
 uint8_t charRx;
 
+uint8_t charRx_uart2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -197,6 +199,42 @@ UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t 
   /* USER CODE END vcom_ReceiveInit_2 */
 }
 
+UTIL_ADV_TRACE_Status_t vcom_ReceiveInit_UART2(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error))
+{
+  /* USER CODE BEGIN vcom_ReceiveInit_1 */
+
+  /* USER CODE END vcom_ReceiveInit_1 */
+  UART_WakeUpTypeDef WakeUpSelection;
+
+  /*record call back*/
+  RxCpltCallback = RxCb;
+
+  /*Set wakeUp event on start bit*/
+  WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
+
+  HAL_UARTEx_StopModeWakeUpSourceConfig(&huart2, WakeUpSelection);
+
+  /* Make sure that no UART transfer is on-going */
+  while (__HAL_UART_GET_FLAG(&huart2, USART_ISR_BUSY) == SET);
+
+  /* Make sure that UART is ready to receive)   */
+  while (__HAL_UART_GET_FLAG(&huart2, USART_ISR_REACK) == RESET);
+
+  /* Enable USART interrupt */
+  __HAL_UART_ENABLE_IT(&huart2, UART_IT_WUF);
+
+  /*Enable wakeup from stop mode*/
+  HAL_UARTEx_EnableStopMode(&huart2);
+
+  /*Start LPUART receive on IT*/
+  HAL_UART_Receive_IT(&huart2, &charRx_uart2, 1);
+
+  return UTIL_ADV_TRACE_OK;
+  /* USER CODE BEGIN vcom_ReceiveInit_2 */
+
+  /* USER CODE END vcom_ReceiveInit_2 */
+}
+
 void vcom_Resume(void)
 {
   /* USER CODE BEGIN vcom_Resume_1 */
@@ -229,7 +267,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     TxCpltCallback(NULL);
   }
   /* USER CODE BEGIN HAL_UART_TxCpltCallback_2 */
-
+  else if (huart->Instance == USART2)
+  {
+    TxCpltCallback(NULL);
+  }
   /* USER CODE END HAL_UART_TxCpltCallback_2 */
 }
 
@@ -249,7 +290,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     HAL_UART_Receive_IT(huart, &charRx, 1);
   }
   /* USER CODE BEGIN HAL_UART_RxCpltCallback_2 */
-
+  else if (huart->Instance == USART2)
+  {
+    if ((NULL != RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
+    {
+      APP_PRINTF("2:%c", charRx_uart2);
+    }
+    HAL_UART_Receive_IT(huart, &charRx_uart2, 1);
+  }
   /* USER CODE END HAL_UART_RxCpltCallback_2 */
 }
 

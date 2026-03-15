@@ -27,7 +27,6 @@
 #include "stm32_lpm.h"
 #include "timer_if.h"
 #include "utilities_def.h"
-#include "stm32_adv_trace.h"
 #include "usart_if.h"
 // #include "sys_debug.h"
 
@@ -113,6 +112,7 @@ void SystemApp_Init(void)
   UTIL_ADV_TRACE_SetVerboseLevel(VERBOSE_LEVEL);
   /* Enable Receive Commands and Echo characters*/
   vcom_ReceiveInit(&Rcv1_Callback);
+  vcom_ReceiveInit_UART2(&Rcv1_Callback);
 
   /*Init low power manager*/
   // UTIL_LPM_Init();
