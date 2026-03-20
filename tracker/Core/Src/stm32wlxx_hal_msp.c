@@ -139,6 +139,100 @@ void HAL_LPTIM_MspDeInit(LPTIM_HandleTypeDef* hlptim)
 }
 
 /**
+  * @brief RNG MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hrng: RNG handle pointer
+  * @retval None
+  */
+void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  if(hrng->Instance==RNG)
+  {
+    /* USER CODE BEGIN RNG_MspInit 0 */
+
+    /* USER CODE END RNG_MspInit 0 */
+
+  /** Initializes the peripherals clocks
+  */
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RNG;
+    PeriphClkInitStruct.RngClockSelection = RCC_RNGCLKSOURCE_LSI;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_RNG_CLK_ENABLE();
+    /* USER CODE BEGIN RNG_MspInit 1 */
+
+    /* USER CODE END RNG_MspInit 1 */
+
+  }
+
+}
+
+/**
+  * @brief RNG MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hrng: RNG handle pointer
+  * @retval None
+  */
+void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
+{
+  if(hrng->Instance==RNG)
+  {
+    /* USER CODE BEGIN RNG_MspDeInit 0 */
+
+    /* USER CODE END RNG_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_RNG_CLK_DISABLE();
+    /* USER CODE BEGIN RNG_MspDeInit 1 */
+
+    /* USER CODE END RNG_MspDeInit 1 */
+  }
+
+}
+
+/**
+  * @brief SUBGHZ MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hsubghz: SUBGHZ handle pointer
+  * @retval None
+  */
+void HAL_SUBGHZ_MspInit(SUBGHZ_HandleTypeDef* hsubghz)
+{
+    /* USER CODE BEGIN SUBGHZ_MspInit 0 */
+
+    /* USER CODE END SUBGHZ_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_SUBGHZSPI_CLK_ENABLE();
+    /* USER CODE BEGIN SUBGHZ_MspInit 1 */
+
+    /* USER CODE END SUBGHZ_MspInit 1 */
+
+}
+
+/**
+  * @brief SUBGHZ MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hsubghz: SUBGHZ handle pointer
+  * @retval None
+  */
+void HAL_SUBGHZ_MspDeInit(SUBGHZ_HandleTypeDef* hsubghz)
+{
+    /* USER CODE BEGIN SUBGHZ_MspDeInit 0 */
+
+    /* USER CODE END SUBGHZ_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_SUBGHZSPI_CLK_DISABLE();
+    /* USER CODE BEGIN SUBGHZ_MspDeInit 1 */
+
+    /* USER CODE END SUBGHZ_MspDeInit 1 */
+
+}
+
+/**
   * @brief UART MSP Initialization
   * This function configures the hardware resources used in this example
   * @param huart: UART handle pointer
@@ -149,41 +243,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   HAL_DMA_MuxSyncConfigTypeDef pSyncConfig;
   RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-  if(huart->Instance==LPUART1)
-  {
-    /* USER CODE BEGIN LPUART1_MspInit 0 */
-
-    /* USER CODE END LPUART1_MspInit 0 */
-
-  /** Initializes the peripherals clocks
-  */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_LPUART1;
-    PeriphClkInitStruct.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    /* Peripheral clock enable */
-    __HAL_RCC_LPUART1_CLK_ENABLE();
-
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    /**LPUART1 GPIO Configuration
-    PC1     ------> LPUART1_TX
-    PC0     ------> LPUART1_RX
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_0;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF8_LPUART1;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    /* USER CODE BEGIN LPUART1_MspInit 1 */
-
-    /* USER CODE END LPUART1_MspInit 1 */
-  }
-  else if(huart->Instance==USART1)
+  if(huart->Instance==USART1)
   {
     /* USER CODE BEGIN USART1_MspInit 0 */
 
@@ -287,7 +347,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 
     /* USART2 DMA Init */
     /* USART2_RX Init */
-    hdma_usart2_rx.Instance = DMA1_Channel3;
+    hdma_usart2_rx.Instance = DMA2_Channel1;
     hdma_usart2_rx.Init.Request = DMA_REQUEST_USART2_RX;
     hdma_usart2_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_usart2_rx.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -314,7 +374,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     __HAL_LINKDMA(huart,hdmarx,hdma_usart2_rx);
 
     /* USART2_TX Init */
-    hdma_usart2_tx.Instance = DMA1_Channel4;
+    hdma_usart2_tx.Instance = DMA2_Channel2;
     hdma_usart2_tx.Init.Request = DMA_REQUEST_USART2_TX;
     hdma_usart2_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
     hdma_usart2_tx.Init.PeriphInc = DMA_PINC_DISABLE;
@@ -340,6 +400,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
 
     __HAL_LINKDMA(huart,hdmatx,hdma_usart2_tx);
 
+    /* USART2 interrupt Init */
+    HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
     /* USER CODE BEGIN USART2_MspInit 1 */
 
     /* USER CODE END USART2_MspInit 1 */
@@ -355,25 +418,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   */
 void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 {
-  if(huart->Instance==LPUART1)
-  {
-    /* USER CODE BEGIN LPUART1_MspDeInit 0 */
-
-    /* USER CODE END LPUART1_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_LPUART1_CLK_DISABLE();
-
-    /**LPUART1 GPIO Configuration
-    PC1     ------> LPUART1_TX
-    PC0     ------> LPUART1_RX
-    */
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_1|GPIO_PIN_0);
-
-    /* USER CODE BEGIN LPUART1_MspDeInit 1 */
-
-    /* USER CODE END LPUART1_MspDeInit 1 */
-  }
-  else if(huart->Instance==USART1)
+  if(huart->Instance==USART1)
   {
     /* USER CODE BEGIN USART1_MspDeInit 0 */
 
@@ -414,104 +459,13 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
     /* USART2 DMA DeInit */
     HAL_DMA_DeInit(huart->hdmarx);
     HAL_DMA_DeInit(huart->hdmatx);
+
+    /* USART2 interrupt DeInit */
+    HAL_NVIC_DisableIRQ(USART2_IRQn);
     /* USER CODE BEGIN USART2_MspDeInit 1 */
 
     /* USER CODE END USART2_MspDeInit 1 */
   }
-
-}
-
-/**
-  * @brief RNG MSP Initialization
-  * This function configures the hardware resources used in this example
-  * @param hrng: RNG handle pointer
-  * @retval None
-  */
-void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
-{
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-  if(hrng->Instance==RNG)
-  {
-    /* USER CODE BEGIN RNG_MspInit 0 */
-
-    /* USER CODE END RNG_MspInit 0 */
-
-  /** Initializes the peripherals clocks
-  */
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RNG;
-    PeriphClkInitStruct.RngClockSelection = RCC_RNGCLKSOURCE_LSI;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    /* Peripheral clock enable */
-    __HAL_RCC_RNG_CLK_ENABLE();
-    /* USER CODE BEGIN RNG_MspInit 1 */
-
-    /* USER CODE END RNG_MspInit 1 */
-
-  }
-
-}
-
-/**
-  * @brief RNG MSP De-Initialization
-  * This function freeze the hardware resources used in this example
-  * @param hrng: RNG handle pointer
-  * @retval None
-  */
-void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
-{
-  if(hrng->Instance==RNG)
-  {
-    /* USER CODE BEGIN RNG_MspDeInit 0 */
-
-    /* USER CODE END RNG_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_RNG_CLK_DISABLE();
-    /* USER CODE BEGIN RNG_MspDeInit 1 */
-
-    /* USER CODE END RNG_MspDeInit 1 */
-  }
-
-}
-
-/**
-  * @brief SUBGHZ MSP Initialization
-  * This function configures the hardware resources used in this example
-  * @param hsubghz: SUBGHZ handle pointer
-  * @retval None
-  */
-void HAL_SUBGHZ_MspInit(SUBGHZ_HandleTypeDef* hsubghz)
-{
-    /* USER CODE BEGIN SUBGHZ_MspInit 0 */
-
-    /* USER CODE END SUBGHZ_MspInit 0 */
-    /* Peripheral clock enable */
-    __HAL_RCC_SUBGHZSPI_CLK_ENABLE();
-    /* USER CODE BEGIN SUBGHZ_MspInit 1 */
-
-    /* USER CODE END SUBGHZ_MspInit 1 */
-
-}
-
-/**
-  * @brief SUBGHZ MSP De-Initialization
-  * This function freeze the hardware resources used in this example
-  * @param hsubghz: SUBGHZ handle pointer
-  * @retval None
-  */
-void HAL_SUBGHZ_MspDeInit(SUBGHZ_HandleTypeDef* hsubghz)
-{
-    /* USER CODE BEGIN SUBGHZ_MspDeInit 0 */
-
-    /* USER CODE END SUBGHZ_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_SUBGHZSPI_CLK_DISABLE();
-    /* USER CODE BEGIN SUBGHZ_MspDeInit 1 */
-
-    /* USER CODE END SUBGHZ_MspDeInit 1 */
 
 }
 

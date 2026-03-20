@@ -46,8 +46,7 @@ typedef enum
 	CFG_SEQ_Task_PingPong_Process,
 
   /* USER CODE END CFG_LPM_Id_t_0 */
-  CFG_LPM_APPLI_Id,
-  CFG_LPM_UART_TX_Id,
+  CFG_LPM_DUMMY_Id,
   /* USER CODE BEGIN CFG_LPM_Id_t */
 
   /* USER CODE END CFG_LPM_Id_t */

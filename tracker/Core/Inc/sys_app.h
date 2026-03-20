@@ -28,9 +28,9 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stdint.h"
-#include "stm32_adv_trace.h"
 /* USER CODE BEGIN Includes */
-
+#include "utilities_conf.h"
+#include "usart_if.h"
 /* USER CODE END Includes */
 
 /* Exported defines ----------------------------------------------------------*/

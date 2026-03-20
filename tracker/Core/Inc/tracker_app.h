@@ -6,5 +6,6 @@
 
 
 void StartBlinkerTask(void *argument);
+void UARTSendTask(void *argument);
 extern UART_HandleTypeDef huart2;
 #endif /* __TRACKER_APP_H */

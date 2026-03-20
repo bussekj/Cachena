@@ -82,6 +82,7 @@ set(Application_Src
     SubGHz_Phy/Target/radio_board_if.c
     Core/Src/main.c
     Core/Src/tracker_app.c
+    Core/Src/NMEA_parser.c
     Core/Src/app_freertos.c
     Core/Src/stm32_lpm_if.c
     Core/Src/sys_app.c

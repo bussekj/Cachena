@@ -27,6 +27,7 @@
 #include "stm32_lpm.h"
 #include "timer_if.h"
 #include "utilities_def.h"
+#include "stm32_adv_trace.h"
 #include "usart_if.h"
 // #include "sys_debug.h"
 
@@ -58,6 +59,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t SYS_TimerInitialisedFlag = 0;
+
+/* USER CODE BEGIN PV */
 static uint8_t pinState = 0;
 /* USER CODE BEGIN PV */
 
@@ -82,8 +85,8 @@ void Rcv1_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
 {  
   // Store data:
   // APP_PRINTF(TS_OFF, VLEVEL_M, "Received data: %s\n\r", rxChar);
-  pinState = !pinState;
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, pinState);
+  // pinState = !pinState;
+  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, pinState);
 }
 
 /* USER CODE END PFP */
@@ -112,7 +115,6 @@ void SystemApp_Init(void)
   UTIL_ADV_TRACE_SetVerboseLevel(VERBOSE_LEVEL);
   /* Enable Receive Commands and Echo characters*/
   vcom_ReceiveInit(&Rcv1_Callback);
-  vcom_ReceiveInit_UART2(&Rcv1_Callback);
 
   /*Init low power manager*/
   // UTIL_LPM_Init();

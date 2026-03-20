@@ -68,12 +68,6 @@ UTIL_ADV_TRACE_Status_t vcom_Init(void (*cb)(void *));
   * @return @ref UTIL_ADV_TRACE_Status_t
   */
 UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error));
-/**
-  * @brief  init receiver of vcom
-  * @param  RxCb callback when Rx char is received
-  * @return @ref UTIL_ADV_TRACE_Status_t
-  */
-UTIL_ADV_TRACE_Status_t vcom_ReceiveInit_UART2(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error));
 
 /**
   * @brief  DeInit the UART and associated DMA.
@@ -113,6 +107,8 @@ void vcom_Resume(void);
 
 /* USER CODE BEGIN EFP */
 
+void UART2_Rx_Init();
+
 void UartEcho_UART_IRQHandler(void);
 
 void UartEcho_DMA_IRQHandler(void);
@@ -120,7 +116,7 @@ void UartEcho_DMA_IRQHandler(void);
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 /* USER CODE END EFP */
 
-#ifdef __cpluspluso
+#ifdef __cplusplus
 }
 #endif
 

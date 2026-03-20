@@ -20,10 +20,11 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usart_if.h"
+
+/* USER CODE BEGIN Includes */
 #include "main.h"
 #include "sys_app.h"
-/* USER CODE BEGIN Includes */
-
+#include "NMEA_parser.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -38,12 +39,6 @@ extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
-/**
-  * @brief buffer to receive 1 character
-  */
-uint8_t charRx;
-
-uint8_t charRx_uart2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -67,6 +62,8 @@ const UTIL_ADV_TRACE_Driver_s UTIL_TraceDriver =
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+uint8_t char1Rx;
+uint8_t char2Rx;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,7 +85,7 @@ static void (*TxCpltCallback)(void *);
   * @return none
   */
 static void (*RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
-
+static void (*UART2_RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -107,9 +104,8 @@ UTIL_ADV_TRACE_Status_t vcom_Init(void (*cb)(void *))
 
   /* USER CODE END vcom_Init_1 */
   TxCpltCallback = cb;
-  // MX_DMA_Init();
-  // MX_USART1_UART_Init();
-  
+//  MX_DMA_Init();
+//  MX_USART1_UART_Init();
   LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_26);
   return UTIL_ADV_TRACE_OK;
   /* USER CODE BEGIN vcom_Init_2 */
@@ -164,7 +160,7 @@ UTIL_ADV_TRACE_Status_t vcom_Trace_DMA(uint8_t *p_data, uint16_t size)
 }
 
 UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error))
-{
+{ 
   /* USER CODE BEGIN vcom_ReceiveInit_1 */
 
   /* USER CODE END vcom_ReceiveInit_1 */
@@ -191,7 +187,7 @@ UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t 
   HAL_UARTEx_EnableStopMode(&huart1);
 
   /*Start LPUART receive on IT*/
-  HAL_UART_Receive_IT(&huart1, &charRx, 1);
+  HAL_UART_Receive_IT(&huart1, &char1Rx, 1);
 
   return UTIL_ADV_TRACE_OK;
   /* USER CODE BEGIN vcom_ReceiveInit_2 */
@@ -199,27 +195,16 @@ UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t 
   /* USER CODE END vcom_ReceiveInit_2 */
 }
 
-UTIL_ADV_TRACE_Status_t vcom_ReceiveInit_UART2(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error))
+void UART2_Rx_Init(void (*RxCb)(uint8_t *rxChar, uint16_t size, uint8_t error))
 {
-  /* USER CODE BEGIN vcom_ReceiveInit_1 */
-
-  /* USER CODE END vcom_ReceiveInit_1 */
   UART_WakeUpTypeDef WakeUpSelection;
-
-  /*record call back*/
-  RxCpltCallback = RxCb;
-
-  /*Set wakeUp event on start bit*/
   WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
-
-  HAL_UARTEx_StopModeWakeUpSourceConfig(&huart2, WakeUpSelection);
-
-  /* Make sure that no UART transfer is on-going */
+  
+  UART2_RxCpltCallback = RxCb;
   while (__HAL_UART_GET_FLAG(&huart2, USART_ISR_BUSY) == SET);
 
   /* Make sure that UART is ready to receive)   */
   while (__HAL_UART_GET_FLAG(&huart2, USART_ISR_REACK) == RESET);
-
   /* Enable USART interrupt */
   __HAL_UART_ENABLE_IT(&huart2, UART_IT_WUF);
 
@@ -227,12 +212,8 @@ UTIL_ADV_TRACE_Status_t vcom_ReceiveInit_UART2(void (*RxCb)(uint8_t *rxChar, uin
   HAL_UARTEx_EnableStopMode(&huart2);
 
   /*Start LPUART receive on IT*/
-  HAL_UART_Receive_IT(&huart2, &charRx_uart2, 1);
-
-  return UTIL_ADV_TRACE_OK;
-  /* USER CODE BEGIN vcom_ReceiveInit_2 */
-
-  /* USER CODE END vcom_ReceiveInit_2 */
+  HAL_UART_Receive_IT(&huart2, &char2Rx, 1);
+//  HAL_UART_Receive_DMA(&huart2, &char2Rx_DMA, 1);
 }
 
 void vcom_Resume(void)
@@ -267,10 +248,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     TxCpltCallback(NULL);
   }
   /* USER CODE BEGIN HAL_UART_TxCpltCallback_2 */
-  else if (huart->Instance == USART2)
-  {
-    TxCpltCallback(NULL);
-  }
+
   /* USER CODE END HAL_UART_TxCpltCallback_2 */
 }
 
@@ -283,20 +261,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   {
     if ((NULL != RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
     {
-      RxCpltCallback(&charRx, 1, 0);
-      //Echo back received char
-      APP_PRINTF("%c", charRx);
+      RxCpltCallback(&char1Rx, 1, 0);
+      APP_PRINTF("%c", char1Rx);
     }
-    HAL_UART_Receive_IT(huart, &charRx, 1);
+    HAL_UART_Receive_IT(huart, &char1Rx, 1);
   }
   /* USER CODE BEGIN HAL_UART_RxCpltCallback_2 */
   else if (huart->Instance == USART2)
   {
-    if ((NULL != RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
-    {
-      APP_PRINTF("2:%c", charRx_uart2);
-    }
-    HAL_UART_Receive_IT(huart, &charRx_uart2, 1);
+    // if ((NULL != UART2_RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
+    // {
+    //   APP_PRINTF("%c", char2Rx);
+    // }
+    nmea_feed_byte(&char2Rx, 1, 0);
+    HAL_UART_Receive_IT(huart, &char2Rx, 1);
   }
   /* USER CODE END HAL_UART_RxCpltCallback_2 */
 }
@@ -304,12 +282,16 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 /* USER CODE BEGIN EF */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    if (huart->Instance != USART1) 
+    if (huart->Instance == USART1) 
     { 
-      return; 
-  }
-    HAL_UART_DMAStop(huart);
-    (void)HAL_UART_Receive_IT(&huart1, &charRx, 1);
+      HAL_UART_DMAStop(huart);
+      (void)HAL_UART_Receive_IT(huart, &char1Rx, 1);
+    }
+    else if (huart->Instance == USART2)
+    {
+      HAL_UART_DMAStop(huart);
+      (void)HAL_UART_Receive_IT(huart, &char2Rx, 1);
+    }
 }
 /* USER CODE END EF */
 
