@@ -88,8 +88,31 @@ def read_serial_data(port_name, baud_rate):
         print("Latitude Stats")
         print(f"N={len(lat_stats)} - {lat_mean=}, {lat_var=}")
 
-if __name__ == '__main__':
-    SERIAL_PORT = "/dev/ttyACM0"  # Replace with your actual port name
-    BAUD_RATE = 9600              # Replace with your device's baud rate (e.g., 115200)
+def read_fake_serial_data():
 
-    read_serial_data(SERIAL_PORT, BAUD_RATE)
+    while True:
+        # Read a line from the serial port, decode it, and strip whitespace
+        # .readline() waits for a newline character '\n' or a timeout
+        f = open("NMEA.output", "r")
+        data = f.readline().strip()
+        while data != "":
+            data = f.readline().strip()
+            if data:
+                print(f"Received: {data}")
+                if "GPGLL" in data:
+                    GLL_data = data.split(",")
+                    print(len(GLL_data), GLL_data)
+                    if len(GLL_data) == 8:
+                        try:
+                            send_GPGLL_data(GLL_data)
+                            time.sleep(5)
+                        except: 
+                            print("Failed to send")
+
+
+if __name__ == '__main__':
+    # SERIAL_PORT = "/dev/ttyACM0"  # Replace with your actual port name
+    # BAUD_RATE = 9600              # Replace with your device's baud rate (e.g., 115200)
+
+    # read_serial_data(SERIAL_PORT, BAUD_RATE)
+    read_fake_serial_data()
