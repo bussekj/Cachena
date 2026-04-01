@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -18,27 +18,35 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cmsis_os2.h"
-#include "FreeRTOS.h"
 #include "app_subghz_phy.h"
+#include "gpio.h"
+#include "sys_app.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "radio.h"
+#include "stm32_timer.h"
+#include "FreeRTOS.h"
+#include "cmsis_os2.h"
+#include "semphr.h"
 #include "subghz_phy_app.h"
-#include "sys_app.h"
-#include "usart_if.h"
-#include "tracker_app.h"
-#include "tracker_app.h"
-#include "NMEA_parser.h"
+#include "gps.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+void StartBlinkerTask(void *argument);
+void StartRadioTask(void *argument);
+void StartReceiverTask(void *argument);
+void StartTrackerTask(void *argument);
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,58 +55,65 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-LPTIM_HandleTypeDef hlptim1;
-
-RNG_HandleTypeDef hrng;
-
-SUBGHZ_HandleTypeDef hsubghz;
-
-UART_HandleTypeDef huart1;
-UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_usart1_rx;
-DMA_HandleTypeDef hdma_usart1_tx;
-DMA_HandleTypeDef hdma_usart2_rx;
-DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-osThreadId_t blinkerTaskHandle;
-const osThreadAttr_t blinkerTask_attributes = {
-  .name = "blinkerTask",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
-
-osThreadId_t uartSendTaskHandle;
-const osThreadAttr_t uartSendTask_attributes = {
-  .name = "uartSendTask",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_LPTIM1_Init(void);
-static void MX_USART1_UART_Init(void);
-static void MX_RNG_Init(void);
-static void MX_USART2_UART_Init(void);
-void StartDefaultTask(void *argument);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+osThreadId_t blinkerTaskHandle;
+const osThreadAttr_t blinkerTask_attributes = {
+  .name = "blinkerTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+osThreadId_t radioTaskHandle;
+const osThreadAttr_t radioTask_attributes = {
+  .name = "pingPongTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+osThreadId_t receiverTaskHandle;
+const osThreadAttr_t receiverTask_attributes = {
+  .name = "receiverTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+osThreadId_t trackerTaskHandle;
+const osThreadAttr_t trackerTask_attributes = {
+  .name = "trackerTask",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 
+// Semaphores
+osSemaphoreId_t radioBinarySemHandle;
+osSemaphoreId_t validGPSBinarySemHandle;
+
+// Message Queue Sizes
+#define GPS_MSG_OBJECTS 8
+#define RAW_GPS_MSG_OBJECTS 255
+// Message Queues
+osMessageQueueId_t gpsDataQueueHandle;
+osMessageQueueId_t rawGPSDataQueueHandle;
+
+// Buffers
+static uint8_t TxDataBuffer[255];
+ 
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
+#define TRACKER
 int main(void)
 {
 
@@ -112,7 +127,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  SubghzApp_Init();
 
   /* USER CODE END Init */
 
@@ -124,74 +138,179 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_LPTIM1_Init();
-  MX_USART1_UART_Init();
-  MX_RNG_Init();
-  MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
+  MX_SubGHz_Phy_Init();
 
-  HAL_UART_MspInit(&huart1);
-  HAL_UART_MspInit(&huart2);
-
-  SystemApp_Init();
-
-  // UartEcho_Init();
-
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Init scheduler */
-  
   osKernelInitialize();
 
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+  // Create semaphores
+  radioBinarySemHandle = osSemaphoreNew(1U,1U, NULL);
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+  // Create message queues
+  gpsDataQueueHandle = osMessageQueueNew(GPS_MSG_OBJECTS, sizeof(GPS_Message_Queue_t), NULL);
+  if (gpsDataQueueHandle == NULL)
+  {
+	  Error_Handler();
+  }
+  rawGPSDataQueueHandle = osMessageQueueNew(RAW_GPS_MSG_OBJECTS, sizeof(uint8_t), NULL);
+  if (rawGPSDataQueueHandle == NULL)
+  {
+	  Error_Handler();
+  }
 
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  UART2_Rx_Init();
+  // Create threads
   blinkerTaskHandle = osThreadNew(StartBlinkerTask, NULL, &blinkerTask_attributes);
-  uartSendTaskHandle = osThreadNew(UARTSendTask, NULL, &uartSendTask_attributes);
+  radioTaskHandle = osThreadNew(StartRadioTask, NULL, &radioTask_attributes);
+#ifdef TRACKER
+  trackerTaskHandle = osThreadNew(StartTrackerTask, NULL, &trackerTask_attributes);
+#else
+  receiverTaskHandle = osThreadNew(StartReceiverTask, NULL, &receiverTask_attributes);
+#endif
 
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
-
-  /* Start scheduler */
   osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // We will never reach here! The RTOS scheduler will take over after osKernelStart() is called.
   while (1)
   {
-    /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+void gpsData_to_buffer(GPS_Message_Queue_t *msg, uint8_t *buffer)
+{
+  // Convert the GPS data to a byte buffer for transmission
+    snprintf(buffer, 255, "%u,%d,%d,%d,%d",
+    		msg->trackerId, msg->isValid,
+			msg->latitude, msg->longitude,
+			msg->batteryLevel);
+}
+
+//#define TxData1 "Test"
+void StartRadioTask(void *argument)
+{
+  osStatus_t status;
+  GPS_Message_Queue_t msg;
+  // Clear txDataBuffer
+  	memset(TxDataBuffer, 0, sizeof(TxDataBuffer));
+	while (1)
+	{
+#ifdef TRACKER
+	osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
+    status = osMessageQueueGet(gpsDataQueueHandle, &msg, NULL, osWaitForever);   // wait for message
+    if (status == osOK)
+    {
+      APP_LOG(TS_ON, VLEVEL_H, "Received parsed data from GPS\r\n");
+      // Convert GPS data to byte buffer for transmission
+      gpsData_to_buffer(&msg, TxDataBuffer);
+      RadioSend(TxDataBuffer, sizeof(TxDataBuffer));
+    }
+#else
+	osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
+    RadioReceive(0);
+    osDelay(1000);
+#endif
+	}
+}
+
+void StartReceiverTask(void *argument)
+{
+  osStatus_t status;
+  while (1)
+  {
+    GPS_Message_Queue_t msg;
+    status = osMessageQueueGet(gpsDataQueueHandle, &msg, NULL, 1000U); 
+    if (status == osOK)
+    {
+      // Process the received GPS data
+      APP_LOG(TS_OFF, VLEVEL_M, "Received GPS Data: Latitude: %d, Longitude: %d, Altitude: %d, Battery Level: %d, Tracker ID: %d\r\n",
+              msg.latitude, msg.longitude, msg.batteryLevel, msg.isValid, msg.trackerId);
+    }
+    else if (status == osErrorTimeout)
+    {
+      // No message received within the timeout period
+      APP_LOG(TS_OFF, VLEVEL_M, "No GPS data received.\r\n");
+    }
+  }
+}
+
+GPS_Message_Queue_t  gpsData= {0,0,0,0,0};
+void StartTrackerTask(void *argument)
+{
+  osStatus_t status;
+  uint32_t gpsDataQueueSpace = 0;
+
+  char rawGPSBuffer[NMEA_MAX_LEN];
+  size_t bytesRead;
+  uint8_t c;
+  for(;;)
+  {
+    // Simulate GPS data collection and send it to the gpsDataQueue
+    status = osMessageQueueGet(rawGPSDataQueueHandle, &c, NULL, 0U);
+    if (status == osOK)
+    {
+      if ( c == '$')
+      {
+        bytesRead = 0;
+      }
+
+    /* Buffer overflow guard */
+      if (bytesRead >= NMEA_MAX_LEN - 2)
+      {
+          bytesRead = 0;
+          continue;
+      }
+
+      rawGPSBuffer[bytesRead++] = c;
+
+      /* LF terminates a sentence */
+      if (c == '\n') 
+      {
+    	  rawGPSBuffer[bytesRead] = '\0';
+          bytesRead = 0;
+//          gpsData = parse_sentence(rawGPSBuffer);
+          gpsData.longitude = 50.96456;
+          gpsData.latitude = -96456.325;
+          gpsData.batteryLevel = 99;
+          gpsData.isValid = 1;
+          gpsData.trackerId = 5000;
+    	  if (gpsData.isValid)
+    	  {
+		    gpsDataQueueSpace = osMessageQueueGetSpace(gpsDataQueueHandle);
+    		if (gpsDataQueueSpace != 0 || gpsDataQueueSpace != gpsDataQueueHandle )
+			{
+				 osMessageQueuePut(gpsDataQueueHandle, &gpsData, 0U, 0U);
+			}
+    	  }
+      }
+    }
+  }
+}
+
+void StartBlinkerTask(void *argument)
+{
+  int delay = 500;
+  APP_LOG(TS_OFF, VLEVEL_L, "Debugging LEVEL L\r\n");
+  APP_LOG(TS_OFF, VLEVEL_M, "Debugging LEVEL M\r\n");
+  APP_LOG(TS_OFF, VLEVEL_H, "Debugging LEVEL H\r\n");
+
+  UTIL_TIMER_Time_t past_ticks = 0;
+  UTIL_TIMER_Time_t ticks = 0;
+  for(;;)
+  {
+	ticks = UTIL_TIMER_GetCurrentTime();
+    if (past_ticks + 1000 < ticks)
+    {
+      APP_LOG(TS_OFF, VLEVEL_H, "Tick: %d\r\n", ticks);
+      past_ticks = ticks;
+    }
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 1);
+    osDelay(delay);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, 0);
+    osDelay(delay);
+  }
 }
 
 /**
@@ -203,18 +322,22 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
+  /** Configure LSE Drive Capability
+  */
+  HAL_PWR_EnableBkUpAccess();
+  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_7;
-  RCC_OscInitStruct.LSIDiv = RCC_LSI_DIV1;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_11;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -232,293 +355,15 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.AHBCLK3Divider = RCC_SYSCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
 }
 
-/**
-  * @brief LPTIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPTIM1_Init(void)
-{
+/* USER CODE BEGIN 4 */
 
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  hlptim1.Instance = LPTIM1;
-  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV1;
-  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
-  hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
-  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
-  hlptim1.Init.Input1Source = LPTIM_INPUT1SOURCE_GPIO;
-  hlptim1.Init.Input2Source = LPTIM_INPUT2SOURCE_GPIO;
-  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
-
-}
-
-/**
-  * @brief RNG Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RNG_Init(void)
-{
-
-  /* USER CODE BEGIN RNG_Init 0 */
-
-  /* USER CODE END RNG_Init 0 */
-
-  /* USER CODE BEGIN RNG_Init 1 */
-
-  /* USER CODE END RNG_Init 1 */
-  hrng.Instance = RNG;
-  hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
-  if (HAL_RNG_Init(&hrng) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RNG_Init 2 */
-
-  /* USER CODE END RNG_Init 2 */
-
-}
-
-/**
-  * @brief SUBGHZ Initialization Function
-  * @param None
-  * @retval None
-  */
-void MX_SUBGHZ_Init(void)
-{
-
-  /* USER CODE BEGIN SUBGHZ_Init 0 */
-
-  /* USER CODE END SUBGHZ_Init 0 */
-
-  /* USER CODE BEGIN SUBGHZ_Init 1 */
-
-  /* USER CODE END SUBGHZ_Init 1 */
-  hsubghz.Init.BaudratePrescaler = SUBGHZSPI_BAUDRATEPRESCALER_8;
-  if (HAL_SUBGHZ_Init(&hsubghz) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SUBGHZ_Init 2 */
-
-  /* USER CODE END SUBGHZ_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMAMUX1_CLK_ENABLE();
-  __HAL_RCC_DMA1_CLK_ENABLE();
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-  /* DMA2_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
-  /* DMA2_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Channel2_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Channel2_IRQn);
-  /* DMAMUX1_OVR_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMAMUX1_OVR_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMAMUX1_OVR_IRQn);
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3|GPIO_PIN_4, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : PA12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_RF_BUSY;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_11;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF13_DEBUG_RF;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB3 PB4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
-}
-
-/**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  /* USER CODE BEGIN Callback 0 */
-
-  /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1)
-  {
-    HAL_IncTick();
-  }
-  /* USER CODE BEGIN Callback 1 */
-
-  /* USER CODE END Callback 1 */
-}
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -534,7 +379,8 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-#ifdef USE_FULL_ASSERT
+
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

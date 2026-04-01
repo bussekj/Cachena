@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -22,14 +22,15 @@
 #include "app_subghz_phy.h"
 #include "subghz_phy_app.h"
 #include "sys_app.h"
-
+#include "stm32_seq.h"
+#include "cmsis_os2.h"
 /* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
 /* USER CODE BEGIN EV */
 
+extern osSemaphoreId_t radioBinarySemHandle;
 /* USER CODE END EV */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -74,8 +75,19 @@ void MX_SubGHz_Phy_Init(void)
   /* USER CODE END MX_SubGHz_Phy_Init_2 */
 }
 
-/* USER CODE BEGIN EF */
+void MX_SubGHz_Phy_Process(void)
+{
+  /* USER CODE BEGIN MX_SubGHz_Phy_Process_1 */
 
+  /* USER CODE END MX_SubGHz_Phy_Process_1 */
+//  UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+
+  /* USER CODE BEGIN MX_SubGHz_Phy_Process_2 */
+
+  /* USER CODE END MX_SubGHz_Phy_Process_2 */
+}
+
+/* USER CODE BEGIN EF */
 /* USER CODE END EF */
 
 /* Private Functions Definition -----------------------------------------------*/

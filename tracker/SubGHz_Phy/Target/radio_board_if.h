@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -69,7 +69,7 @@ extern "C" {
  * 0: TCXO not supported
  * 1: TCXO supported
  */
-#define IS_TCXO_SUPPORTED                   0U
+#define IS_TCXO_SUPPORTED                   1U
 
 /* Indicates whether or not DCDC is supported by the board
  * 0: DCDC not supported

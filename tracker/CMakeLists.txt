@@ -67,12 +67,15 @@ set(Include_Dirs
     Utilities/misc
     Utilities/timer
     Utilities/lpm/tiny_lpm
+    Utilities/sequencer
     Middlewares/Third_Party/FreeRTOS/Source/include
     Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2
     Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3
     Drivers/CMSIS/RTOS2/Include
     Drivers/CMSIS/Device/ST/STM32WLxx/Include
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver
+    Drivers/BSP/STM32WLxx_Nucleo
+    Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver
+    Middlewares/Third_Party/SubGHz_Phy
     Drivers/CMSIS/Include
 )
 
@@ -81,19 +84,22 @@ set(Application_Src
     SubGHz_Phy/App/subghz_phy_app.c
     SubGHz_Phy/Target/radio_board_if.c
     Core/Src/main.c
-    Core/Src/tracker_app.c
-    Core/Src/NMEA_parser.c
-    Core/Src/app_freertos.c
     Core/Src/stm32_lpm_if.c
     Core/Src/sys_app.c
     Core/Src/timer_if.c
     Core/Src/usart_if.c
     Core/Src/stm32wlxx_it.c
     Core/Src/stm32wlxx_hal_msp.c
-    Core/Src/stm32wlxx_hal_timebase_tim.c
     Core/Src/sysmem.c
     Core/Src/syscalls.c
     startup_stm32wle5xx.s
+    Core/Src/dma.c
+    Core/Src/gpio.c
+    Core/Src/rtc.c
+    Core/Src/subghz.c
+    Core/Src/sys_debug.c
+    Core/Src/gps.c
+    Core/Src/usart.c
 )
 
 # STM32 HAL/LL Drivers
@@ -111,13 +117,15 @@ set(STM32_Drivers_Src
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_pwr_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_cortex.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rtc.c
+    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rtc_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_exti.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_lptim.c
+    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_lptim.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_uart.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_uart_ex.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng.c
-    Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng_ex.c
+    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng.c
+    # Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_rng_ex.c
     Drivers/STM32WLxx_HAL_Driver/Src/stm32wlxx_hal_subghz.c
 )
 
@@ -129,6 +137,7 @@ set(Utilities_Src
     Utilities/misc/stm32_tiny_vsnprintf.c
     Utilities/timer/stm32_timer.c
     Utilities/lpm/tiny_lpm/stm32_lpm.c
+    Utilities/sequencer/stm32_seq.c
 )
 set(FreeRTOS_Src
     Middlewares/Third_Party/FreeRTOS/Source/croutine.c
@@ -143,11 +152,12 @@ set(FreeRTOS_Src
     Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c
 )
 set(SubGHz_Phy_Src
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver/wl_lr_fhss.c
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio.c
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio_fw.c
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver/radio_driver.c
-    Middlewares/Third_Party/SubGHz_Phy/radio_driver/lr_fhss_mac.c
+    # Middlewares/Third_Party/SubGHz_Phy/radio_driver/wl_lr_fhss.c
+    Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver/radio.c
+    Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver/radio_fw.c
+    Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver/radio_driver.c
+    Middlewares/Third_Party/SubGHz_Phy/stm32_radio_driver/lr_fhss_mac.c
+    Drivers/BSP/STM32WLxx_Nucleo/stm32wlxx_nucleo_radio.c
 )
 
 set (PROJECT_DEFINES
@@ -207,6 +217,7 @@ add_executable(${PROJECT_NAME}
 # Link directories setup (toolchain / linker search paths)
 target_link_directories(${PROJECT_NAME} PRIVATE ${LINK_DIRS})
 
+target_link_options(${PROJECT_NAME} PRIVATE "-u_printf_float")
 # Link toolchain/system libraries; object libraries' object files are already added to the executable above.
 # Keep stm32cubemx attached so its include dirs / compile defs propagate
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TOOLCHAIN_LINK_LIBRARIES} stm32cubemx)

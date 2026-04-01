@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,7 +19,8 @@
 /* USER CODE END Header */
 
 #include "stm32_adv_trace.h"
-#include "main.h"
+#include "usart.h"
+#include "dma.h"
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USART_IF_H__
@@ -108,12 +109,6 @@ void vcom_Resume(void);
 /* USER CODE BEGIN EFP */
 
 void UART2_Rx_Init();
-
-void UartEcho_UART_IRQHandler(void);
-
-void UartEcho_DMA_IRQHandler(void);
-
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart);
 /* USER CODE END EFP */
 
 #ifdef __cplusplus

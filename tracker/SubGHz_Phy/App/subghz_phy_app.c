@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -23,10 +23,17 @@
 #include "sys_app.h"
 #include "subghz_phy_app.h"
 #include "radio.h"
-#include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "stm32_timer.h"
+#include "stm32_seq.h"
+#include "utilities_def.h"
+#include "app_version.h"
+#include "subghz_phy_version.h"
+#include "subghz.h"
+#include "main.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -36,11 +43,36 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum
+{
+  RX,
+  RX_TIMEOUT,
+  RX_ERROR,
+  TX,
+  TX_TIMEOUT,
+} States_t;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/* Configurations */
+/*Timeout*/
+#define RX_TIMEOUT_VALUE              1
+#define TX_TIMEOUT_VALUE              3000
+
+/*Size of the payload to be sent*/
+/* Size must be greater of equal the PING and PONG*/
+#define MAX_APP_BUFFER_SIZE          255
+#if (PAYLOAD_LEN > MAX_APP_BUFFER_SIZE)
+#error PAYLOAD_LEN must be less or equal than MAX_APP_BUFFER_SIZE
+#endif /* (PAYLOAD_LEN > MAX_APP_BUFFER_SIZE) */
+/* wait for remote to be in Rx, before sending a Tx frame*/
+#define RX_TIME_MARGIN                200
+/* Afc bandwidth in Hz */
+#define FSK_AFC_BANDWIDTH             83333
+/* LED blink Period*/
+#define LED_PERIOD_MS                 200
 
 /* USER CODE END PD */
 
@@ -54,7 +86,26 @@
 static RadioEvents_t RadioEvents;
 
 /* USER CODE BEGIN PV */
-
+/*Ping Pong FSM states */
+static States_t State = RX;
+/* App Rx Buffer*/
+static uint8_t BufferRx[MAX_APP_BUFFER_SIZE];
+/* App Tx Buffer*/
+static uint8_t BufferTx[MAX_APP_BUFFER_SIZE];
+/* Last  Received Buffer Size*/
+uint16_t RxBufferSize = 0;
+/* Last  Received packer Rssi*/
+int8_t RssiValue = 0;
+/* Last  Received packer SNR (in Lora modulation)*/
+int8_t SnrValue = 0;
+/* device state. Master: true, Slave: false*/
+bool isMaster = true;
+/* random delay to make sure 2 devices will sync*/
+/* the closest the random delays are, the longer it will
+   take for the devices to sync when started simultaneously*/
+static int32_t random_delay;
+//extern SemaphoreHandle_t xRadioSemaphore;
+extern osSemaphoreId_t sid_Radio_id;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,14 +138,23 @@ static void OnRxTimeout(void);
   */
 static void OnRxError(void);
 
-/* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Exported functions ---------------------------------------------------------*/
 void SubghzApp_Init(void)
 {
   /* USER CODE BEGIN SubghzApp_Init_1 */
+  /* Get SubGHY_Phy APP version*/
+  APP_LOG(TS_OFF, VLEVEL_M, "APPLICATION_VERSION: V%X.%X.%X\r\n",
+          (uint8_t)(APP_VERSION_MAIN),
+          (uint8_t)(APP_VERSION_SUB1),
+          (uint8_t)(APP_VERSION_SUB2));
+
+  /* Get MW SubGhz_Phy info */
+  APP_LOG(TS_OFF, VLEVEL_M, "MW_RADIO_VERSION:    V%X.%X.%X\r\n",
+          (uint8_t)(SUBGHZ_PHY_VERSION_MAIN),
+          (uint8_t)(SUBGHZ_PHY_VERSION_SUB1),
+          (uint8_t)(SUBGHZ_PHY_VERSION_SUB2));
 
   /* USER CODE END SubghzApp_Init_1 */
 
@@ -108,6 +168,59 @@ void SubghzApp_Init(void)
   Radio.Init(&RadioEvents);
 
   /* USER CODE BEGIN SubghzApp_Init_2 */
+  /*calculate random delay for synchronization*/
+  random_delay = (Radio.Random()) >> 22; /*10bits random e.g. from 0 to 1023 ms*/
+
+  /* Radio Set frequency */
+  Radio.SetChannel(RF_FREQUENCY);
+
+  /* Radio configuration */
+#if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
+  APP_LOG(TS_OFF, VLEVEL_M, "---------------\n\r");
+  APP_LOG(TS_OFF, VLEVEL_M, "LORA_MODULATION\n\r");
+  APP_LOG(TS_OFF, VLEVEL_M, "LORA_BW=%d kHz\n\r", (1 << LORA_BANDWIDTH) * 125);
+  APP_LOG(TS_OFF, VLEVEL_M, "LORA_SF=%d\n\r", LORA_SPREADING_FACTOR);
+
+  Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                    true, 0, 0, LORA_IQ_INVERSION_ON, TX_TIMEOUT_VALUE);
+
+  Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+                    LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+                    LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+                    0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
+
+  Radio.SetMaxPayloadLength(MODEM_LORA, MAX_APP_BUFFER_SIZE);
+
+#elif ((USE_MODEM_LORA == 0) && (USE_MODEM_FSK == 1))
+  APP_LOG(TS_OFF, VLEVEL_M, "---------------\n\r");
+  APP_LOG(TS_OFF, VLEVEL_M, "FSK_MODULATION\n\r");
+  APP_LOG(TS_OFF, VLEVEL_M, "FSK_BW=%d Hz\n\r", FSK_BANDWIDTH);
+  APP_LOG(TS_OFF, VLEVEL_M, "FSK_DR=%d bits/s\n\r", FSK_DATARATE);
+
+  Radio.SetTxConfig(MODEM_FSK, TX_OUTPUT_POWER, FSK_FDEV, 0,
+                    FSK_DATARATE, 0,
+                    FSK_PREAMBLE_LENGTH, FSK_FIX_LENGTH_PAYLOAD_ON,
+                    true, 0, 0, 0, TX_TIMEOUT_VALUE);
+
+  Radio.SetRxConfig(MODEM_FSK, FSK_BANDWIDTH, FSK_DATARATE,
+                    0, FSK_AFC_BANDWIDTH, FSK_PREAMBLE_LENGTH,
+                    0, FSK_FIX_LENGTH_PAYLOAD_ON, 0, true,
+                    0, 0, false, true);
+
+  Radio.SetMaxPayloadLength(MODEM_FSK, MAX_APP_BUFFER_SIZE);
+
+#else
+#error "Please define a modulation in the subghz_phy_app.h file."
+#endif /* USE_MODEM_LORA | USE_MODEM_FSK */
+
+  RadioState_t status = Radio.GetStatus();
+  uint8_t buf[4];
+  HAL_StatusTypeDef st = HAL_SUBGHZ_ExecGetCmd(&hsubghz, RADIO_GET_STATUS, buf, 16);
+
+  APP_LOG(TS_OFF, VLEVEL_L,
+      "SUBGHZ HAL status: %d, buf[0]=0x%02X\r\n", st, buf[0]);
 
   /* USER CODE END SubghzApp_Init_2 */
 }
@@ -120,33 +233,88 @@ void SubghzApp_Init(void)
 static void OnTxDone(void)
 {
   /* USER CODE BEGIN OnTxDone */
+  APP_LOG(TS_ON, VLEVEL_H, "OnTxDone\r\n");
+  State = TX;
+  osSemaphoreRelease(radioBinarySemHandle);
   /* USER CODE END OnTxDone */
 }
 
 static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo)
 {
   /* USER CODE BEGIN OnRxDone */
+  APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
+#if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
+  APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
+  /* Record payload Signal to noise ratio in Lora*/
+  SnrValue = LoraSnr_FskCfo;
+#endif /* USE_MODEM_LORA | USE_MODEM_FSK */
+#if ((USE_MODEM_LORA == 0) && (USE_MODEM_FSK == 1))
+  APP_LOG(TS_ON, VLEVEL_H, "RssiValue=%d dBm, Cfo=%dkHz\n\r", rssi, LoraSnr_FskCfo);
+  SnrValue = 0; /*not applicable in GFSK*/
+#endif /* USE_MODEM_LORA | USE_MODEM_FSK */
+  /* Update the State of the FSM*/
+  State = RX;
+  /* Clear BufferRx*/
+  memset(BufferRx, 0, MAX_APP_BUFFER_SIZE);
+  /* Record payload size*/
+  RxBufferSize = size;
+  if (RxBufferSize <= MAX_APP_BUFFER_SIZE)
+  {
+    memcpy(BufferRx, payload, RxBufferSize);
+  }
+  /* Record Received Signal Strength*/
+  RssiValue = rssi;
+  /* Record payload content*/
+  APP_LOG(TS_ON, VLEVEL_L, "payload. size=%d \n\r", size);
+  for (int32_t i = 0; i < PAYLOAD_LEN; i++)
+  {
+    APP_LOG(TS_OFF, VLEVEL_L, "%c", BufferRx[i]);
+  }
+  APP_LOG(TS_OFF, VLEVEL_L, "\r\n");
+
+  osSemaphoreRelease(radioBinarySemHandle);
   /* USER CODE END OnRxDone */
 }
 
 static void OnTxTimeout(void)
 {
   /* USER CODE BEGIN OnTxTimeout */
+  APP_LOG(TS_ON, VLEVEL_H, "OnTxTimeout\n\r");
+  /* Update the State of the FSM*/
+  State = TX_TIMEOUT;
+
+  osSemaphoreRelease(radioBinarySemHandle);
   /* USER CODE END OnTxTimeout */
 }
 
 static void OnRxTimeout(void)
 {
   /* USER CODE BEGIN OnRxTimeout */
+  APP_LOG(TS_ON, VLEVEL_H, "OnRxTimeout\n\r");
+  /* Update the State of the FSM*/
+  State = RX_TIMEOUT;
+  osSemaphoreRelease(radioBinarySemHandle);
   /* USER CODE END OnRxTimeout */
 }
 
 static void OnRxError(void)
 {
   /* USER CODE BEGIN OnRxError */
+  APP_LOG(TS_ON, VLEVEL_H, "OnRxError\n\r");
+  /* Update the State of the FSM*/
+  State = RX_ERROR;
+  /* Run PingPong process in background*/
+  osSemaphoreRelease(radioBinarySemHandle);
   /* USER CODE END OnRxError */
 }
 
-/* USER CODE BEGIN PrFD */
+void RadioSend(uint8_t *buffer, uint16_t size)
+{
+    Radio.Send(buffer, size);
+}
 
+void RadioReceive(uint32_t timeout)
+{
+    Radio.Rx(timeout);
+}
 /* USER CODE END PrFD */

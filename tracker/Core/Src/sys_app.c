@@ -20,19 +20,23 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdio.h>
+
+#include "cmsis_os2.h"
 #include "platform.h"
 #include "sys_app.h"
-// #include "stm32_seq.h"
+//#include "stm32_seq.h"
 #include "stm32_systime.h"
 #include "stm32_lpm.h"
 #include "timer_if.h"
 #include "utilities_def.h"
-#include "stm32_adv_trace.h"
-#include "usart_if.h"
-// #include "sys_debug.h"
+#include "sys_debug.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "gpio.h"
+#include "main.h"
+#include "usart.h"
+#include "usart_if.h"
+#include "stm32wlxx_hal.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -58,11 +62,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-static uint8_t SYS_TimerInitialisedFlag = 0;
 
 /* USER CODE BEGIN PV */
-static uint8_t pinState = 0;
-/* USER CODE BEGIN PV */
+static uint8_t SYS_TimerInitialisedFlag = 0;
+extern osMessageQueueId_t rawGPSDataQueueHandle;
 
 /* USER CODE END PV */
 
@@ -79,15 +82,12 @@ static void TimestampNow(uint8_t *buff, uint16_t *size);
   */
 static void tiny_snprintf_like(char *buf, uint32_t maxsize, const char *strFormat, ...);
 
-/* USER CODE BEGIN PFP */
 
-void Rcv1_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
-{  
-  // Store data:
-  // APP_PRINTF(TS_OFF, VLEVEL_M, "Received data: %s\n\r", rxChar);
-  // pinState = !pinState;
-  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, pinState);
-}
+static void rawGPSData_Callback(uint8_t *rxChar, uint16_t size, uint8_t error);
+
+
+static void Rcv1_Callback(uint8_t *rxChar, uint16_t size, uint8_t error);
+/* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
@@ -99,13 +99,29 @@ void SystemApp_Init(void)
   /* USER CODE END SystemApp_Init_1 */
 
   /* Ensure that MSI is wake-up system clock */
-  // __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI);
 
+
+  // Initialize UART2 to shift chars GPS data
+  __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI);
+
+  
   /*Initialize timer and RTC*/
-  // UTIL_TIMER_Init();
+
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+
+  // Might wrong to instantiate these here, not sure
+  HAL_UART_MspInit(&huart1);
+  HAL_UART_MspInit(&huart2);
+
+
+  UART2_Rx_Init(&rawGPSData_Callback);
+  UTIL_TIMER_Init();
   SYS_TimerInitialisedFlag = 1;
   /* Initializes the SW probes pins and the monitor RF pins via Alternate Function */
-  // DBG_Init();
+  DBG_Init();
 
   /*Initialize the terminal */
   UTIL_ADV_TRACE_Init();
@@ -113,39 +129,41 @@ void SystemApp_Init(void)
 
   /*Set verbose LEVEL*/
   UTIL_ADV_TRACE_SetVerboseLevel(VERBOSE_LEVEL);
-  /* Enable Receive Commands and Echo characters*/
-  vcom_ReceiveInit(&Rcv1_Callback);
 
   /*Init low power manager*/
-  // UTIL_LPM_Init();
+//  UTIL_LPM_Init();
   /* Disable Stand-by mode */
-  // UTIL_LPM_SetOffMode((1 << CFG_LPM_APPLI_Id), UTIL_LPM_DISABLE);
+//  UTIL_LPM_SetOffMode((1 << CFG_LPM_APPLI_Id), UTIL_LPM_DISABLE);
+//  UTIL_LPM_SetStopMode((1 << CFG_LPM_APPLI_Id), UTIL_LPM_DISABLE);
 
-// #if defined (LOW_POWER_DISABLE) && (LOW_POWER_DISABLE == 1)
-//   /* Disable Stop Mode */
-//   UTIL_LPM_SetStopMode((1 << CFG_LPM_APPLI_Id), UTIL_LPM_DISABLE);
-// #elif !defined (LOW_POWER_DISABLE)
-// #error LOW_POWER_DISABLE not defined
-// #endif /* LOW_POWER_DISABLE */
+#if defined (LOW_POWER_DISABLE) && (LOW_POWER_DISABLE == 1)
+  /* Disable Stop Mode */
+//  UTIL_LPM_SetStopMode((1 << CFG_LPM_APPLI_Id), UTIL_LPM_DISABLE);
+#elif !defined (LOW_POWER_DISABLE)
+#error LOW_POWER_DISABLE not defined
+#endif /* LOW_POWER_DISABLE */
+
+  vcom_ReceiveInit(&Rcv1_Callback);
 
   /* USER CODE BEGIN SystemApp_Init_2 */
 
+  // More Peripherals Instantiated here
   /* USER CODE END SystemApp_Init_2 */
 }
 
 /**
   * @brief redefines __weak function in stm32_seq.c such to enter low power
   */
-// void UTIL_SEQ_Idle(void)
-// {
-//   /* USER CODE BEGIN UTIL_SEQ_Idle_1 */
+void UTIL_SEQ_Idle(void)
+{
+  /* USER CODE BEGIN UTIL_SEQ_Idle_1 */
 
-//   /* USER CODE END UTIL_SEQ_Idle_1 */
-//   // UTIL_LPM_EnterLowPower();
-//   /* USER CODE BEGIN UTIL_SEQ_Idle_2 */
+  /* USER CODE END UTIL_SEQ_Idle_1 */
+//  UTIL_LPM_EnterLowPower();
+  /* USER CODE BEGIN UTIL_SEQ_Idle_2 */
 
-//   /* USER CODE END UTIL_SEQ_Idle_2 */
-// }
+  /* USER CODE END UTIL_SEQ_Idle_2 */
+}
 
 /* USER CODE BEGIN EF */
 
@@ -167,27 +185,27 @@ static void TimestampNow(uint8_t *buff, uint16_t *size)
 }
 
 /* Disable StopMode when traces need to be printed */
-// void UTIL_ADV_TRACE_PreSendHook(void)
-// {
-//   /* USER CODE BEGIN UTIL_ADV_TRACE_PreSendHook_1 */
-
-//   /* USER CODE END UTIL_ADV_TRACE_PreSendHook_1 */
-//   UTIL_LPM_SetStopMode((1 << CFG_LPM_UART_TX_Id), UTIL_LPM_DISABLE);
-//   /* USER CODE BEGIN UTIL_ADV_TRACE_PreSendHook_2 */
-
-//   /* USER CODE END UTIL_ADV_TRACE_PreSendHook_2 */
-// }
-// /* Re-enable StopMode when traces have been printed */
-// void UTIL_ADV_TRACE_PostSendHook(void)
-// {
-//   /* USER CODE BEGIN UTIL_LPM_SetStopMode_1 */
-
-//   /* USER CODE END UTIL_LPM_SetStopMode_1 */
-//   UTIL_LPM_SetStopMode((1 << CFG_LPM_UART_TX_Id), UTIL_LPM_ENABLE);
-//   /* USER CODE BEGIN UTIL_LPM_SetStopMode_2 */
-
-//   /* USER CODE END UTIL_LPM_SetStopMode_2 */
-// }
+//void UTIL_ADV_TRACE_PreSendHook(void)
+//{
+//  /* USER CODE BEGIN UTIL_ADV_TRACE_PreSendHook_1 */
+//
+//  /* USER CODE END UTIL_ADV_TRACE_PreSendHook_1 */
+//  UTIL_LPM_SetStopMode((1 << CFG_LPM_UART_TX_Id), UTIL_LPM_DISABLE);
+//  /* USER CODE BEGIN UTIL_ADV_TRACE_PreSendHook_2 */
+//
+//  /* USER CODE END UTIL_ADV_TRACE_PreSendHook_2 */
+//}
+///* Re-enable StopMode when traces have been printed */
+//void UTIL_ADV_TRACE_PostSendHook(void)
+//{
+//  /* USER CODE BEGIN UTIL_LPM_SetStopMode_1 */
+//
+//  /* USER CODE END UTIL_LPM_SetStopMode_1 */
+//  UTIL_LPM_SetStopMode((1 << CFG_LPM_UART_TX_Id), UTIL_LPM_ENABLE);
+//  /* USER CODE BEGIN UTIL_LPM_SetStopMode_2 */
+//
+//  /* USER CODE END UTIL_LPM_SetStopMode_2 */
+//}
 
 static void tiny_snprintf_like(char *buf, uint32_t maxsize, const char *strFormat, ...)
 {
@@ -205,24 +223,47 @@ static void tiny_snprintf_like(char *buf, uint32_t maxsize, const char *strForma
 
 /* USER CODE BEGIN PrFD */
 
+/**
+  * @brief LPTIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
 /* USER CODE END PrFD */
+void Rcv1_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
+{  
+  // Store data:
+//   APP_PRINTF(TS_OFF, VLEVEL_M, "Received data: %s\n\r", rxChar);
+  // pinState = !pinState;
+  // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, pinState);
+}
 
+osStatus_t status;
 /* HAL overload functions ---------------------------------------------------------*/
+static void rawGPSData_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
+{  
 
-// /**
-//   * @note This function overwrites the __weak one from HAL
-//   */
-// HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
-// {
-//   /*Don't enable SysTick if TIMER_IF is based on other counters (e.g. RTC) */
-//   /* USER CODE BEGIN HAL_InitTick_1 */
+    osMessageQueuePut(rawGPSDataQueueHandle, rxChar, 0U, 0U);
+    if (status != osOK) 
+    {
+        APP_LOG(TS_ON, VLEVEL_H, "Failed to put raw GPS data into queue\r\n");
+        APP_LOG(TS_ON, VLEVEL_H, "Queue Status: %d\r\n", status);
+    }
+}
 
-//   /* USER CODE END HAL_InitTick_1 */
-//   return HAL_OK;
-//   /* USER CODE BEGIN HAL_InitTick_2 */
+/**
+  * @note This function overwrites the __weak one from HAL
+  */
+HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+{
+  /*Don't enable SysTick if TIMER_IF is based on other counters (e.g. RTC) */
+  /* USER CODE BEGIN HAL_InitTick_1 */
 
-//   /* USER CODE END HAL_InitTick_2 */
-// }
+  /* USER CODE END HAL_InitTick_1 */
+  return HAL_OK;
+  /* USER CODE BEGIN HAL_InitTick_2 */
+
+  /* USER CODE END HAL_InitTick_2 */
+}
 
 /**
   * @note This function overwrites the __weak one from HAL

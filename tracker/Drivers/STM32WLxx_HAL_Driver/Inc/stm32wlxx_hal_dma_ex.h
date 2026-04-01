@@ -192,13 +192,13 @@ typedef struct
 
 /* ------------------------- REQUEST -----------------------------------------*/
 HAL_StatusTypeDef HAL_DMAEx_ConfigMuxRequestGenerator(DMA_HandleTypeDef *hdma,
-                                                      const HAL_DMA_MuxRequestGeneratorConfigTypeDef *pRequestGeneratorConfig);
+                                                      HAL_DMA_MuxRequestGeneratorConfigTypeDef *pRequestGeneratorConfig);
 HAL_StatusTypeDef HAL_DMAEx_EnableMuxRequestGenerator(DMA_HandleTypeDef *hdma);
 HAL_StatusTypeDef HAL_DMAEx_DisableMuxRequestGenerator(DMA_HandleTypeDef *hdma);
 /* -------------------------------------------------------------------------- */
 
 /* ------------------------- SYNCHRO -----------------------------------------*/
-HAL_StatusTypeDef HAL_DMAEx_ConfigMuxSync(DMA_HandleTypeDef *hdma,const HAL_DMA_MuxSyncConfigTypeDef *pSyncConfig);
+HAL_StatusTypeDef HAL_DMAEx_ConfigMuxSync(DMA_HandleTypeDef *hdma, HAL_DMA_MuxSyncConfigTypeDef *pSyncConfig);
 /* -------------------------------------------------------------------------- */
 
 void              HAL_DMAEx_MUX_IRQHandler(DMA_HandleTypeDef *hdma);
@@ -215,8 +215,8 @@ void              HAL_DMAEx_MUX_IRQHandler(DMA_HandleTypeDef *hdma);
 /* Private macros ------------------------------------------------------------*/
 /** @defgroup DMAEx_Private_Macros DMAEx Private Macros
   * @brief    DMAEx private macros
-  * @{
-  */
+ * @{
+ */
 
 #define IS_DMAMUX_SYNC_SIGNAL_ID(SIGNAL_ID)             (((SIGNAL_ID) == HAL_DMAMUX1_SYNC_EXTI0) || \
                                                          (((SIGNAL_ID) >= HAL_DMAMUX1_SYNC_EXTI1) && \
@@ -263,4 +263,3 @@ void              HAL_DMAEx_MUX_IRQHandler(DMA_HandleTypeDef *hdma);
 #endif
 
 #endif /* STM32WLxx_HAL_DMA_EX_H */
-

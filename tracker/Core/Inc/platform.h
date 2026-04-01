@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -28,6 +28,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
+#define USE_BSP_DRIVER
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */

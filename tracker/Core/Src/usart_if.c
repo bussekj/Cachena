@@ -24,7 +24,6 @@
 /* USER CODE BEGIN Includes */
 #include "main.h"
 #include "sys_app.h"
-#include "NMEA_parser.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -32,6 +31,7 @@
   * @brief DMA handle
   */
 extern DMA_HandleTypeDef hdma_usart1_tx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
 
 /**
   * @brief UART handle
@@ -77,6 +77,7 @@ uint8_t char2Rx;
   * @return none
   */
 static void (*TxCpltCallback)(void *);
+static void (*RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
 /**
   * @brief  RX complete callback
   * @param  rxChar ptr of chars buffer sent by user
@@ -84,7 +85,7 @@ static void (*TxCpltCallback)(void *);
   * @param  error errorcode
   * @return none
   */
-static void (*RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
+static void (*UART1_RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
 static void (*UART2_RxCpltCallback)(uint8_t *rxChar, uint16_t size, uint8_t error);
 /* USER CODE BEGIN PV */
 
@@ -152,7 +153,7 @@ UTIL_ADV_TRACE_Status_t vcom_Trace_DMA(uint8_t *p_data, uint16_t size)
   /* USER CODE BEGIN vcom_Trace_DMA_1 */
 
   /* USER CODE END vcom_Trace_DMA_1 */
-  HAL_UART_Transmit_DMA(&huart1, p_data, size);
+  HAL_UART_Transmit_IT(&huart1, p_data, size);
   return UTIL_ADV_TRACE_OK;
   /* USER CODE BEGIN vcom_Trace_DMA_2 */
 
@@ -167,7 +168,7 @@ UTIL_ADV_TRACE_Status_t vcom_ReceiveInit(void (*RxCb)(uint8_t *rxChar, uint16_t 
   UART_WakeUpTypeDef WakeUpSelection;
 
   /*record call back*/
-  RxCpltCallback = RxCb;
+  UART1_RxCpltCallback = RxCb;
 
   /*Set wakeUp event on start bit*/
   WakeUpSelection.WakeUpEvent = UART_WAKEUP_ON_STARTBIT;
@@ -259,9 +260,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   /* USER CODE END HAL_UART_RxCpltCallback_1 */
   if (huart->Instance == USART1)
   {
-    if ((NULL != RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
+    if ((NULL != UART1_RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
     {
-      RxCpltCallback(&char1Rx, 1, 0);
+      UART1_RxCpltCallback(&char1Rx, 1, 0);
       APP_PRINTF("%c", char1Rx);
     }
     HAL_UART_Receive_IT(huart, &char1Rx, 1);
@@ -269,11 +270,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   /* USER CODE BEGIN HAL_UART_RxCpltCallback_2 */
   else if (huart->Instance == USART2)
   {
-    // if ((NULL != UART2_RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
-    // {
-    //   APP_PRINTF("%c", char2Rx);
-    // }
-    nmea_feed_byte(&char2Rx, 1, 0);
+    if ((NULL != UART2_RxCpltCallback) && (HAL_UART_ERROR_NONE == huart->ErrorCode))
+    {
+      UART2_RxCpltCallback(&char2Rx, 1, 0);
+    }
     HAL_UART_Receive_IT(huart, &char2Rx, 1);
   }
   /* USER CODE END HAL_UART_RxCpltCallback_2 */

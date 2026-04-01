@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -28,17 +28,17 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "platform.h"
-#include "main.h"
+#include "subghz.h"
 #include "stm32_mem.h"       /* RADIO_MEMSET8 def in this file */
 #include "mw_log_conf.h"     /* mw trace conf */
 #include "radio_board_if.h"  /* low layer api (bsp) */
 #include "utilities_def.h"  /* low layer api (bsp) */
+#include "sys_debug.h"
 /* USER CODE BEGIN include */
 
 /* USER CODE END include */
 
 /* Exported types ------------------------------------------------------------*/
-extern SUBGHZ_HandleTypeDef hsubghz;
 /* USER CODE BEGIN ET */
 
 /* USER CODE END ET */
@@ -91,19 +91,8 @@ extern SUBGHZ_HandleTypeDef hsubghz;
   */
 #define DCDC_ENABLE                 ( 1UL )
 
-/**
-  * @brief disable the Sigfox radio modulation
-  * @note enabled by default
-  */
-#define RADIO_SIGFOX_ENABLE 0
-
-/**
-  * @brief disable the radio generic features
-  * @note enabled by default
-  */
-#define RADIO_GENERIC_CONFIG_ENABLE 0
-
 /* USER CODE BEGIN EC */
+
 /* USER CODE END EC */
 
 /* External variables --------------------------------------------------------*/

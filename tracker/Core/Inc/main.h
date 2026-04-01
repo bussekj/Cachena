@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2026 STMicroelectronics.
+  * Copyright (c) 2022 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -28,7 +28,9 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32wlxx_hal.h"
-
+#include "FreeRTOS.h"
+#include "cmsis_os2.h"
+#include "semphr.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -51,15 +53,13 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
-void MX_SUBGHZ_Init(void);
 
 /* USER CODE BEGIN EFP */
-
+extern osSemaphoreId_t radioBinarySemHandle;
+extern osMessageQueueId_t rawGPSDataQueueHandle;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-
-/* USER CODE BEGIN Private defines */
 #define RTC_N_PREDIV_S 10
 #define RTC_PREDIV_S ((1<<RTC_N_PREDIV_S)-1)
 #define RTC_PREDIV_A ((1<<(15-RTC_N_PREDIV_S))-1)
@@ -84,6 +84,9 @@ void MX_SUBGHZ_Init(void);
 #define RF_CTRL1_GPIO_Port GPIOA
 #define RF_CTRL2_Pin GPIO_PIN_5
 #define RF_CTRL2_GPIO_Port GPIOA
+
+/* USER CODE BEGIN Private defines */
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

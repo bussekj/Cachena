@@ -55,13 +55,15 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern RTC_HandleTypeDef hrtc;
+extern SUBGHZ_HandleTypeDef hsubghz;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
-extern TIM_HandleTypeDef htim1;
+// extern TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN EV */
 
@@ -79,7 +81,7 @@ void NMI_Handler(void)
 
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
+  while (1)
   {
   }
   /* USER CODE END NonMaskableInt_IRQn 1 */
@@ -166,6 +168,20 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles RTC Tamper, RTC TimeStamp, LSECSS and RTC SSRU Interrupts.
+  */
+//void TAMP_STAMP_LSECSS_SSRU_IRQHandler(void)
+//{
+//  /* USER CODE BEGIN TAMP_STAMP_LSECSS_SSRU_IRQn 0 */
+//
+//  /* USER CODE END TAMP_STAMP_LSECSS_SSRU_IRQn 0 */
+//  HAL_RTCEx_SSRUIRQHandler(&hrtc);
+//  /* USER CODE BEGIN TAMP_STAMP_LSECSS_SSRU_IRQn 1 */
+//
+//  /* USER CODE END TAMP_STAMP_LSECSS_SSRU_IRQn 1 */
+//}
+
+/**
   * @brief This function handles DMA1 Channel 1 Interrupt.
   */
 void DMA1_Channel1_IRQHandler(void)
@@ -193,19 +209,6 @@ void DMA1_Channel2_IRQHandler(void)
   /* USER CODE END DMA1_Channel2_IRQn 1 */
 }
 
-/**
-  * @brief This function handles TIM1 Update Interrupt.
-  */
-void TIM1_UP_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM1_UP_IRQn 0 */
-
-  /* USER CODE END TIM1_UP_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim1);
-  /* USER CODE BEGIN TIM1_UP_IRQn 1 */
-
-  /* USER CODE END TIM1_UP_IRQn 1 */
-}
 
 /**
   * @brief This function handles USART1 Interrupt.
@@ -220,6 +223,38 @@ void USART1_IRQHandler(void)
 
   /* USER CODE END USART1_IRQn 1 */
 }
+
+/**
+  * @brief This function handles EXTI Lines [15:10] Interrupt.
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(BUT1_Pin);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
+}
+
+/**
+  * @brief This function handles SUBGHZ Radio Interrupt.
+  */
+void SUBGHZ_Radio_IRQHandler(void)
+{
+  /* USER CODE BEGIN SUBGHZ_Radio_IRQn 0 */
+
+  /* USER CODE END SUBGHZ_Radio_IRQn 0 */
+  HAL_SUBGHZ_IRQHandler(&hsubghz);
+  /* USER CODE BEGIN SUBGHZ_Radio_IRQn 1 */
+
+  /* USER CODE END SUBGHZ_Radio_IRQn 1 */
+}
+
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
 
 /**
   * @brief This function handles USART2 Interrupt.
@@ -279,7 +314,3 @@ void DMAMUX1_OVR_IRQHandler(void)
 
   /* USER CODE END DMAMUX1_OVR_IRQn 1 */
 }
-
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */
