@@ -4,6 +4,7 @@ const userController = require('../controllers/userController');
 const jwtAuth = require('../middleware/authMiddleware');
 
 router.get('/', userController.test);
+router.get('/getUsersByRole', userController.getUsersByRole);
 router.post('/postUser', userController.register);
 router.post('/getUser', userController.getUser);
 

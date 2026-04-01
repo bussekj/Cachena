@@ -1,7 +1,7 @@
 import {request} from './requests.ts';
 import config from '../config.json';
 import { sendMessage } from '../styling/components.tsx';
-
+import {User} from './interfaces.ts'
 export interface userInfo {
     name : string, 
     password : string
@@ -42,6 +42,32 @@ export async function getUser(data : userInfo):Promise<string>{
     return loggedInAs
 };
 
+export async function getUsersByRole(qRole : string):Promise<User[]>{   
+    let users : User[] = [] 
+    let params = "?role=" + qRole;
+    await request(config.endpoint.user + '/getUsersByRole'+ params, 'GET')
+        .then((response : any) => {
+            if(response != null){
+                console.log(response)
+                // sendMessage('success', "Login Successful")
+                users = response.users
+                // localStorage.setItem("jwt", JSON.stringify(response["token"]))
+                // loggedInAs =  JSON.stringify(response.user.role)
+                // window.sessionStorage.setItem("id", JSON.stringify(response.user.id))
+                // if(response["adminToken"]) {
+                //     localStorage.setItem("adminToken", JSON.stringify(response["adminToken"]))
+                // }
+            }
+            else {
+                console.log("data is null")
+            }
+        })
+        .catch((errorMessage) => {
+            console.log("error", errorMessage);
+            sendMessage('error', "Users Fetch Failed:" + errorMessage) 
+        });
+        return users
+};
 // -- POST --
 export async function postUser(data : userData):Promise<boolean>{
     let email = data.email

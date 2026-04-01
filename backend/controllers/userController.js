@@ -43,3 +43,13 @@ exports.getUser = async(req, res) => {
     }
 };
 
+exports.getUsersByRole = async(req, res) => {
+    const { role } = req.query;
+
+    try {
+        let users = await User.findAll({where : {role : role}})
+        res.json({ users })
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

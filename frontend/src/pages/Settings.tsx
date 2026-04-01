@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User , TUO} from '../API/interfaces.ts'
+import { testUsers } from '../API/testData.ts'
 import {
     AppBar,
     Button,
@@ -23,32 +25,32 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import * as userAPI from '../API/userAPI.ts';
 import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-
 const Settings: React.FC = () => {
+    
     const navigate = useNavigate();
 
     // --- State for Data Fetching ---
     // Initialize with mock data for display purposes until GET endpoints are implemented
-    const [workers, setWorkers] = useState([
-        { id: '1', name: 'Alice (Worker)' },
-        { id: '2', name: 'Bob (Worker)' }
-    ]);
-    const [tuos, setTuos] = useState([
-        { id: 'tuo-123', name: 'Tracker Alpha' },
-        { id: 'tuo-456', name: 'Tracker Beta' }
-    ]);
+    const [workers, setWorkers] = useState<User[]>([]);
+    const [tuos, setTuos] = useState<TUO[]>([]);
 
     // --- API Integration Hooks ---
     // Fetch initial data when the component mounts
     useEffect(() => {
         const fetchData = async () => {
-            // TODO: Replace with actual API calls to fetch workers and TUOs
-            // try {
-            //     const fetchedWorkers = await userAPI.getUsersByRole('worker');
-            //     setWorkers(fetchedWorkers);
-            //     const fetchedTUOs = await TUOAPI.getAllTUOs();
-            //     setTuos(fetchedTUOs);
-            // } catch (error) { console.error("Error fetching data:", error); }
+            try {
+                if (true)
+                {
+                    for (let user of testUsers)
+                    {
+                        await userAPI.postUser(user);
+                    }
+                }
+                const fetchedWorkers = await userAPI.getUsersByRole('worker');
+                setWorkers(fetchedWorkers);
+                // const fetchedTUOs = await TUOAPI.getAllTUOs();
+                // setTuos(fetchedTUOs);
+            } catch (error) { console.error("Error fetching data:", error); }
         };
         fetchData();
     }, []);
@@ -88,7 +90,8 @@ const Settings: React.FC = () => {
             });
 
             // Locally update the list to reflect the change visually
-            setWorkers([...workers, { id: Date.now().toString(), name: newWorkerName }]);
+            // setWorkers([...workers, { id: Date.now().toString(), name: newWorkerName }]);
+            // updateWorkerData();
             setNewWorkerName('');
             setNewWorkerEmail('');
             setNewWorkerPassword('');

@@ -6,7 +6,7 @@ import random
 # This is a temporary design to test GPS module location data to the database
 
 # Example: $GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73
-url = "http://localhost:5000/api/tracker/update"
+url = "http://192.168.4.26:5000/api/tracker/update"
 
 GPGLL_TAG = 0
 GPGLL_Latitude = 1
@@ -22,10 +22,14 @@ lat_stats = []
 def send_post_data(url, payload):
     print(url)
     print(payload)
-    response = requests.post(url, json=payload)
-    print(response.status_code)
-    print(response.text)
-
+    try: 
+        response = requests.post(url, json=payload)
+        print(response.status_code)
+        print(response.text)
+    except Exception as e:
+        print('no corey')
+        print(e)
+        
 def send_GPGLL_data(data):
     # if data[GPGLL_Status] != "A":
     #     print("Invalid Data!")
@@ -41,6 +45,7 @@ def send_GPGLL_data(data):
         "location" : str(location),
         "battery" : str(random.randint(0,100))
     } 
+    
 
     send_post_data(url, payload)
     
@@ -105,10 +110,12 @@ def read_fake_serial_data():
                     if len(GLL_data) == 8:
                         try:
                             send_GPGLL_data(GLL_data)
-                            time.sleep(5)
+                            
+                            
                         except: 
                             print("Failed to send")
-
+                        time.sleep(1)
+                        
 
 if __name__ == '__main__':
     # SERIAL_PORT = "/dev/ttyACM0"  # Replace with your actual port name
