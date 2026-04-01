@@ -1,0 +1,25 @@
+.login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #f5f5f5; /* A subtle background color */
+}
+
+.login-paper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px; /* Increased padding */
+    border-radius: 8px; /* Softer corners */
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1); /* A slightly more pronounced shadow */
+}
+
+.login-form {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.login-submit {
+    margin-top: 24px;
+}
