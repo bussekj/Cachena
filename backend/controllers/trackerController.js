@@ -46,8 +46,8 @@ exports.assign = async(req, res) => {
 };
 
 exports.update = async(req, res) => {
-    const { id, location, battery } = req.body;
-
+    const { id, lat, long, battery, RssiValue, SnrValue } = req.body;
+    location = (long/100).toString() + "," + (lat/100).toString()
     try {
         let tracker = await Tracker.findOne({where : { id }})
         if (!tracker) {

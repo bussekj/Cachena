@@ -242,9 +242,9 @@ static void OnTxDone(void)
 static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo)
 {
   /* USER CODE BEGIN OnRxDone */
-  APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
+
 #if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
-  APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
+//  APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\r\n", rssi, LoraSnr_FskCfo);
   /* Record payload Signal to noise ratio in Lora*/
   SnrValue = LoraSnr_FskCfo;
 #endif /* USE_MODEM_LORA | USE_MODEM_FSK */
@@ -265,11 +265,16 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
   /* Record Received Signal Strength*/
   RssiValue = rssi;
   /* Record payload content*/
-  APP_LOG(TS_ON, VLEVEL_L, "payload. size=%d \n\r", size);
+
+//  APP_LOG(TS_OFF, VLEVEL_L, "Payload. size=%d \n\r", size);
+
+  APP_LOG(TS_OFF, VLEVEL_L, "GPSDATA:");
   for (int32_t i = 0; i < PAYLOAD_LEN; i++)
   {
     APP_LOG(TS_OFF, VLEVEL_L, "%c", BufferRx[i]);
   }
+
+    APP_LOG(TS_OFF, VLEVEL_L, ",RssiValue:%d,SnrValue:%d\r\n", rssi, LoraSnr_FskCfo);
   APP_LOG(TS_OFF, VLEVEL_L, "\r\n");
 
   osSemaphoreRelease(radioBinarySemHandle);

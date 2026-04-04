@@ -17,7 +17,7 @@
  * Configuration constants
  * ---------------------------------------------------------------------- */
 #define NMEA_MAX_FIELDS   	32   /* local to .c — not part of the public API  */
-#define NMEA_MAX_LEN 		255
+#define NMEA_MAX_LEN 		64
 #define NMEA_MAX_SVS        16   /**< Maximum satellites in a GSV message   */
 
 /* -------------------------------------------------------------------------
@@ -57,11 +57,11 @@ typedef struct {
 
 // Structs
 typedef struct {
-  double latitude;
-  double longitude;
-  int batteryLevel;
-  bool isValid;
-  int trackerId;
+	int32_t latitude;
+	int32_t longitude;
+	uint8_t batteryLevel;
+	bool isValid;
+	uint8_t trackerId;
 } GPS_Message_Queue_t;
 /* -------------------------------------------------------------------------
  * GLL – Geographic Position Latitude/Longitude
@@ -209,8 +209,9 @@ typedef struct {
  */
 void nmea_reset(void);
 
-GPS_Message_Queue_t parse_sentence(char *sentence);
+void parse_sentence(const char *sentence, GPS_Message_Queue_t* gpsData);
 
+void test();
 /* -------------------------------------------------------------------------
  * Output callback — implement in your application
  *

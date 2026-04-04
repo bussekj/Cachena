@@ -241,7 +241,6 @@ osStatus_t status;
 /* HAL overload functions ---------------------------------------------------------*/
 static void rawGPSData_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
 {  
-
     osMessageQueuePut(rawGPSDataQueueHandle, rxChar, 0U, 0U);
     if (status != osOK) 
     {
