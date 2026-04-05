@@ -5,38 +5,27 @@ const jwt = require('jsonwebtoken');
 exports.test = async (req, res) => {
     try {
         console.log("Touched tracker")
-        return res.status(200).json({resp:"You Got Tracker!"});
+        res.status(200).json({resp:"You Got Tracker!"});
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
 exports.getById = async(req, res) => {
-    const { id } = req.query;
-
+    const { trackerUUID } = req.query;
     try {
-        let tracker = await Tracker.findOne({where : { trackerId }})
+        let tracker = await Tracker.findOne({where : { trackerUUID : trackerUUID}})
         res.json({ tracker })
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-exports.register = async (req, res) => {
-    const { id, location, battery} = req.body;
-    try {
-        const tracker = await Tracker.create({  id, location, battery });
-        return res.status(201).json(tracker);
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
-    }
-};
-
 exports.assign = async(req, res) => {
-    const { trackerId, TUOId } = req.body;
+    const { trackerUUID, TUOId } = req.body;
     try {
         let trackedUserObject = await TrackedUserObject.findByPk(TUOId)
-        trackedUserObject.addTracker(trackerId);
+        trackedUserObject.addTracker(trackerUUID);
         trackedUserObject.save()
         
         return res.status(201).json(trackedUserObject);
@@ -46,19 +35,24 @@ exports.assign = async(req, res) => {
 };
 
 exports.update = async(req, res) => {
-    const { id, lat, long, battery, RssiValue, SnrValue } = req.body;
-    location = (long/100).toString() + "," + (lat/100).toString()
+    const { UUID, lat, lon, battery, RssiValue, SnrValue } = req.body;
+    let latitude = lat / 10000;
+    let longitude = lon / 10000;
     try {
-        let tracker = await Tracker.findOne({where : { id }})
+        let tracker = await Tracker.findOne({where : { trackerUUID : UUID }})
         if (!tracker) {
-            tracker = await Tracker.create({  id, location, battery });
-            return res.status(201).json(tracker);
+            tracker = await Tracker.create({  trackerUUID:UUID, latitude, longitude, battery });
+            res.status(201).json(tracker)
+            return
         }
 
         if (tracker != "")
-            tracker.location = location;
-        if (battery != "")
-            tracker.battery = battery;
+        {
+            tracker.longitude = longitude;
+            tracker.latitude = latitude;
+            if (battery != "")
+                tracker.battery = battery;
+        }
         tracker.save();
 
         res.json({ tracker })

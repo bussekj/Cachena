@@ -56,6 +56,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 extern osSemaphoreId_t radioBinarySemHandle;
+extern osSemaphoreId_t gpsDataBinarySemHandle;
 extern osMessageQueueId_t rawGPSDataQueueHandle;
 /* USER CODE END EFP */
 

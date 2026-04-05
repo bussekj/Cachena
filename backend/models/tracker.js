@@ -3,8 +3,16 @@ module.exports = (sequelize, DataTypes) => {
 const Tracker = sequelize.define(
         'tracker', 
         {
-            location: {
-                type: DataTypes.STRING,
+            trackerUUID: {
+                type: DataTypes.SMALLINT,
+                allowNull: false
+            },
+            longitude: {
+                type: DataTypes.FLOAT,
+                allowNull: false
+            },
+            latitude: {
+                type: DataTypes.FLOAT,
                 allowNull: false
             },
             battery: {

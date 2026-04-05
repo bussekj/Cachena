@@ -55,9 +55,9 @@ def read_serial_data(port_name, baud_rate):
                 print(f"Received: {data}")
                 if validate_GPS_data(data):
                     data = data.split('GPSDATA:')[1]
-                    payload = format_data(data)
-                    print(payload)
-                    payload = json.loads(payload)
+                    # payload = format_data(data)
+                    # print(payload)
+                    payload = json.loads(data)
                     try:
                         send_post_data(url, payload)
                     except: 

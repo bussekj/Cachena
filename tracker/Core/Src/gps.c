@@ -25,6 +25,7 @@
 #include "gps.h"
 #include "sys_app.h"
 #include "cmsis_os2.h"
+#include "main.h"
 
 int split_fields(char* sentence, char** fields)
 {
@@ -57,7 +58,7 @@ int32_t convert_to_deg(double pos)
     deg = ((int)(pos)) / 100.0;
     mins = pos - deg * 100.0;
     deg = deg + mins / 60.0;
-    return (int32_t)deg * 1000;
+    return (int32_t)(deg * 10000);
 }
 
 const uint8_t LAT_POS = 1;
@@ -129,18 +130,17 @@ bool validate_checksum(const char *sentence)
  */
 void parse_sentence(const char *sentence, GPS_Message_Queue_t* gpsData)
 {
+
    char work[128] = {0};
    char *fields[NMEA_MAX_FIELDS];
    int nf;
     if (!sentence || sentence[0] != '$') 
     {
-    	gpsData->isValid = 0;
         return;
     }
     strcpy(work, sentence);
    if (!validate_checksum(work))
    {
-	   gpsData->isValid = 0;
        return;
    }
 
@@ -148,12 +148,12 @@ void parse_sentence(const char *sentence, GPS_Message_Queue_t* gpsData)
     nf = split_fields(work, fields);
     if (nf < 1) 
     {
-    	gpsData->isValid = 0;
         return;
     }
     const char *msg_id = fields[0];
 	if (strcmp(msg_id,"GPGLL") == 0)
 	{
+//		osSemaphoreAcquire(gpsDataBinarySemHandle, osWaitForever);
 		handle_gll(fields, nf, gpsData);
 		if(!gpsData->isValid)
 		{
@@ -163,6 +163,7 @@ void parse_sentence(const char *sentence, GPS_Message_Queue_t* gpsData)
 		gpsData->trackerId = 1;
 		gpsData->batteryLevel = 99;
 		gpsData->isValid = 1;
+//		osSemaphoreRelease(gpsDataBinarySemHandle);
 	}
 }
 void test()

@@ -95,11 +95,11 @@ const osThreadAttr_t trackerTask_attributes = {
 
 // Semaphores
 osSemaphoreId_t radioBinarySemHandle;
-osSemaphoreId_t validGPSBinarySemHandle;
+osSemaphoreId_t gpsDataBinarySemHandle;
 
 // Message Queue Sizes
 #define GPS_MSG_OBJECTS 8
-#define RAW_GPS_MSG_OBJECTS 64
+#define RAW_GPS_MSG_OBJECTS 128
 // Message Queues
 osMessageQueueId_t rawGPSDataQueueHandle;
 osMessageQueueId_t gpsDataQueueHandle;
@@ -109,6 +109,8 @@ osMessageQueueAttr_t gpsDataAttributes = {
 };
 // Buffer
 static char TxDataBuffer[64];
+
+static GPS_Message_Queue_t  gpsData = {0,0,0,0,0};
  
 /* USER CODE END 0 */
 
@@ -148,9 +150,10 @@ int main(void)
 
   // Create semaphores
   radioBinarySemHandle = osSemaphoreNew(1U,1U, NULL);
-//  validGPSBinarySemHandle = osSemaphoreNew(1U,1U, NULL);
+  gpsDataBinarySemHandle = osSemaphoreNew(1U,1U, NULL);
   // Create message queues
-  gpsDataQueueHandle = osMessageQueueNew(GPS_MSG_OBJECTS, sizeof(GPS_Message_Queue_t), NULL);
+
+  gpsDataQueueHandle = osMessageQueueNew(GPS_MSG_OBJECTS, sizeof(GPS_Message_Queue_t)*8, NULL);
   if (gpsDataQueueHandle == NULL)
   {
 	  Error_Handler();
@@ -163,7 +166,6 @@ int main(void)
 
   // Create threads
   blinkerTaskHandle = osThreadNew(StartBlinkerTask, NULL, &blinkerTask_attributes);
-  radioTaskHandle = osThreadNew(StartRadioTask, NULL, &radioTask_attributes);
 #ifdef TRACKER
   trackerTaskHandle = osThreadNew(StartTrackerTask, NULL, &trackerTask_attributes);
 #else
@@ -186,37 +188,10 @@ int main(void)
 void gpsData_to_buffer(GPS_Message_Queue_t *msg, char *buffer)
 {
   // Convert the GPS data to a byte buffer for transmission
-    snprintf(buffer, 255, "id:%d,lat:%d,long:%d,battery:%d",
+    snprintf(buffer, 255, "\"UUID\":%d,\"lat\":%d,\"lon\":%d,\"battery\":%d",
     		msg->trackerId,
 			msg->latitude, msg->longitude,
 			msg->batteryLevel);
-}
-
-void StartRadioTask(void *argument)
-{
-	osStatus_t status;
-	GPS_Message_Queue_t msg;
-	// Clear txDataBuffer
-	memset(TxDataBuffer, 0, sizeof(TxDataBuffer));
-	while (1)
-	{
-#ifdef TRACKER
-    status = osMessageQueueGet(gpsDataQueueHandle, &msg, NULL, 1000u);   // wait for message
-    if (status == osOK)
-    {
-		osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
-		APP_LOG(TS_ON, VLEVEL_H, "Received parsed data from GPS\r\n");
-		// Convert GPS data to byte buffer for transmission
-		gpsData_to_buffer(&msg, TxDataBuffer);
-		RadioSend(TxDataBuffer, sizeof(TxDataBuffer));
-    }
-
-#else
-	osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
-	RadioReceive(0);
-	osDelay(1000);
-#endif
-	}
 }
 
 void StartReceiverTask(void *argument)
@@ -224,19 +199,9 @@ void StartReceiverTask(void *argument)
 	osStatus_t status;
 	while (1)
 	{
-//		GPS_Message_Queue_t msg;
-//		status = osMessageQueueGet(gpsDataQueueHandle, &msg, NULL, 10000U);
-//		if (status == osOK)
-//		{
-//		  // Process the received GPS data
-//			APP_LOG(TS_OFF, VLEVEL_M, "Received GPS Data: Latitude: %d, Longitude: %d, Altitude: %d, Battery Level: %d, Tracker ID: %d\r\n",
-//				  msg.latitude, msg.longitude, msg.batteryLevel, msg.isValid, msg.trackerId);
-//		}
-//		else if (status == osErrorTimeout)
-//		{
-//			// No message received within the timeout period
-//			APP_LOG(TS_OFF, VLEVEL_M, "No GPS data received.\r\n");
-//		}
+		osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
+		RadioReceive(0);
+		osDelay(1000);
 	}
 }
 #define GPSTESTDATA "$GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73\n\0"
@@ -244,13 +209,11 @@ void testingPass(char* buffer, GPS_Message_Queue_t* gpsData);
 void StartTrackerTask(void *argument)
 {
 	osStatus_t status;
-
 	uint8_t c;
 	size_t bytesRead;
 	char rawGPSBuffer[128];
 	for(;;)
 	{
-	// Simulate GPS data collection and send it to the gpsDataQueue
 		status = osMessageQueueGet(rawGPSDataQueueHandle, &c, NULL, osWaitForever);
 		if (status == osOK)
 		{
@@ -272,15 +235,15 @@ void StartTrackerTask(void *argument)
 
 				rawGPSBuffer[bytesRead] = '\0';
 				bytesRead = 0;
-
 //				strcpy(rawGPSBuffer, GPSTESTDATA);
-//		        APP_LOG(TS_OFF, VLEVEL_M, "%s\r\n", rawGPSBuffer);
-
-				GPS_Message_Queue_t  gpsData = {0,0,0,0,0};
 				parse_sentence(rawGPSBuffer, &gpsData);
-				if (gpsData.isValid)
+				if(gpsData.isValid)
 				{
-					osMessageQueuePut(gpsDataQueueHandle, &gpsData, 0U, 0U);
+					  osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
+					  APP_LOG(TS_ON, VLEVEL_H, "Received parsed data from GPS\r\n");
+					  gpsData_to_buffer(&gpsData, TxDataBuffer);
+					  RadioSend(TxDataBuffer, sizeof(TxDataBuffer));
+					  gpsData.isValid = 0;
 				}
 			}
 		}

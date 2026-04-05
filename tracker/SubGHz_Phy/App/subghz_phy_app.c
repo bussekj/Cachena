@@ -268,13 +268,13 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
 
 //  APP_LOG(TS_OFF, VLEVEL_L, "Payload. size=%d \n\r", size);
 
-  APP_LOG(TS_OFF, VLEVEL_L, "GPSDATA:");
+  APP_LOG(TS_OFF, VLEVEL_L, "GPSDATA:{");
   for (int32_t i = 0; i < PAYLOAD_LEN; i++)
   {
     APP_LOG(TS_OFF, VLEVEL_L, "%c", BufferRx[i]);
   }
 
-    APP_LOG(TS_OFF, VLEVEL_L, ",RssiValue:%d,SnrValue:%d\r\n", rssi, LoraSnr_FskCfo);
+    APP_LOG(TS_OFF, VLEVEL_L, ",\"RssiValue\":%d,\"SnrValue\":%d}\r\n", rssi, LoraSnr_FskCfo);
   APP_LOG(TS_OFF, VLEVEL_L, "\r\n");
 
   osSemaphoreRelease(radioBinarySemHandle);

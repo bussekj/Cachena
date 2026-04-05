@@ -242,11 +242,6 @@ osStatus_t status;
 static void rawGPSData_Callback(uint8_t *rxChar, uint16_t size, uint8_t error)
 {  
     osMessageQueuePut(rawGPSDataQueueHandle, rxChar, 0U, 0U);
-    if (status != osOK) 
-    {
-        APP_LOG(TS_ON, VLEVEL_H, "Failed to put raw GPS data into queue\r\n");
-        APP_LOG(TS_ON, VLEVEL_H, "Queue Status: %d\r\n", status);
-    }
 }
 
 /**
