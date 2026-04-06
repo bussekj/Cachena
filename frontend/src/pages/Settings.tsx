@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User , TUO} from '../API/interfaces.ts'
+import { testUsers } from '../API/testData.ts'
 import {
     AppBar,
     Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     Divider,
     FormControl,
     IconButton,
@@ -23,32 +30,37 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import * as userAPI from '../API/userAPI.ts';
 import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-
 const Settings: React.FC = () => {
+    
     const navigate = useNavigate();
 
     // --- State for Data Fetching ---
     // Initialize with mock data for display purposes until GET endpoints are implemented
-    const [workers, setWorkers] = useState([
-        { id: '1', name: 'Alice (Worker)' },
-        { id: '2', name: 'Bob (Worker)' }
-    ]);
-    const [tuos, setTuos] = useState([
-        { id: 'tuo-123', name: 'Tracker Alpha' },
-        { id: 'tuo-456', name: 'Tracker Beta' }
-    ]);
+    const [workers, setWorkers] = useState<User[]>([]);
+    const [tuos, setTuos] = useState<TUO[]>([]);
 
     // --- API Integration Hooks ---
     // Fetch initial data when the component mounts
     useEffect(() => {
         const fetchData = async () => {
-            // TODO: Replace with actual API calls to fetch workers and TUOs
-            // try {
-            //     const fetchedWorkers = await userAPI.getUsersByRole('worker');
-            //     setWorkers(fetchedWorkers);
-            //     const fetchedTUOs = await TUOAPI.getAllTUOs();
-            //     setTuos(fetchedTUOs);
-            // } catch (error) { console.error("Error fetching data:", error); }
+            try {
+                if (true)
+                {
+                    for (let user of testUsers)
+                    {
+                        await userAPI.postUser(user);
+                    }
+                }
+                
+                const [fetchedWorkers, fetchedAdmins] = await Promise.all([
+                    userAPI.getUsersByRole('worker'),
+                    userAPI.getUsersByRole('admin')
+                ]);
+                setWorkers([...fetchedWorkers, ...fetchedAdmins]);
+
+                // const fetchedTUOs = await TUOAPI.getAllTUOs();
+                // setTuos(fetchedTUOs);
+            } catch (error) { console.error("Error fetching data:", error); }
         };
         fetchData();
     }, []);
@@ -65,6 +77,16 @@ const Settings: React.FC = () => {
     // --- Menu State for Worker Actions ---
     const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedWorkerForMenu, setSelectedWorkerForMenu] = useState<null | string>(null);
+
+    // --- Delete Worker Dialog State ---
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [workerToDelete, setWorkerToDelete] = useState<User | null>(null);
+    const [deletePassword, setDeletePassword] = useState('');
+
+    // --- Make Admin Dialog State ---
+    const [makeAdminDialogOpen, setMakeAdminDialogOpen] = useState(false);
+    const [workerToMakeAdmin, setWorkerToMakeAdmin] = useState<User | null>(null);
+    const [makeAdminPassword, setMakeAdminPassword] = useState('');
 
     const handleWorkerMenuOpen = (event: React.MouseEvent<HTMLElement>, workerId: string) => {
         setMenuAnchorEl(event.currentTarget);
@@ -88,7 +110,8 @@ const Settings: React.FC = () => {
             });
 
             // Locally update the list to reflect the change visually
-            setWorkers([...workers, { id: Date.now().toString(), name: newWorkerName }]);
+            // setWorkers([...workers, { id: Date.now().toString(), name: newWorkerName }]);
+            // updateWorkerData();
             setNewWorkerName('');
             setNewWorkerEmail('');
             setNewWorkerPassword('');
@@ -97,36 +120,72 @@ const Settings: React.FC = () => {
         }
     };
 
-    const handleRemoveWorker = async (id: string) => {
-        try {
-            // TODO: Call a DELETE endpoint on the userAPI when it is added to the backend
-            // await userAPI.deleteUser(id);
-            setWorkers(workers.filter(worker => worker.id !== id));
-        } catch (error) {
-            console.error("Failed to remove worker", error);
+    const confirmDeleteWorker = async () => {
+        if (workerToDelete) {
+            try {
+                const isDeleted = await userAPI.deleteUser({
+                    id: workerToDelete.id,
+                    password: deletePassword,
+                    name: '',
+                    email: '',
+                    role: ''
+                });
+                
+                if (isDeleted) {
+                    setWorkers(workers.filter(worker => worker.id !== workerToDelete.id));
+                }
+            } catch (error) {
+                console.error("Failed to remove worker", error);
+            }
         }
+        setDeleteDialogOpen(false);
+        setDeletePassword('');
+        setWorkerToDelete(null);
     };
 
-    const handleMakeAdmin = async () => {
-        if (selectedWorkerForMenu) {
+    const confirmMakeAdmin = async () => {
+        if (workerToMakeAdmin) {
             try {
-                // TODO: Call an API to update the user's role to 'admin'
-                // For example: await userAPI.updateUserRole(selectedWorkerForMenu, 'admin');
-                console.log(`Making worker ${selectedWorkerForMenu} an admin.`);
-
-                // For now, just remove them from the local 'workers' list as they are now an admin
-                setWorkers(workers.filter(worker => worker.id !== selectedWorkerForMenu));
+                const isAdmin = await userAPI.makeAdmin({
+                    id: workerToMakeAdmin.id,
+                    password: makeAdminPassword,
+                    name: '',
+                    email: '',
+                    role: ''
+                });
+                
+                if (isAdmin) {
+                    setWorkers(workers.map(worker => 
+                        worker.id === workerToMakeAdmin.id ? { ...worker, role: 'admin' } : worker
+                    ));
+                }
             } catch (error) {
                 console.error("Failed to make worker an admin", error);
+            }
+        }
+        setMakeAdminDialogOpen(false);
+        setMakeAdminPassword('');
+        setWorkerToMakeAdmin(null);
+    };
+
+    const handleMakeAdminFromMenu = () => {
+        if (selectedWorkerForMenu) {
+            const worker = workers.find(w => w.id === selectedWorkerForMenu);
+            if (worker) {
+                setWorkerToMakeAdmin(worker);
+                setMakeAdminDialogOpen(true);
             }
         }
         handleWorkerMenuClose();
     };
 
-    const handleRemoveWorkerFromMenu = async () => {
+    const handleRemoveWorkerFromMenu = () => {
         if (selectedWorkerForMenu) {
-            // This function is already set up to handle the API call and local state update
-            await handleRemoveWorker(selectedWorkerForMenu);
+            const worker = workers.find(w => w.id === selectedWorkerForMenu);
+            if (worker) {
+                setWorkerToDelete(worker);
+                setDeleteDialogOpen(true);
+            }
         }
         handleWorkerMenuClose();
     };
@@ -175,7 +234,7 @@ const Settings: React.FC = () => {
                         {workers.map((worker) => (
                             <React.Fragment key={worker.id}>
                                 <ListItem>
-                                    <ListItemText primary={worker.name} />
+                                    <ListItemText primary={worker.name + (worker.role === 'admin' ? ' (A)' : '')} />
                                     <ListItemSecondaryAction>
                                         <IconButton edge="end" aria-label="more" onClick={(e) => handleWorkerMenuOpen(e, worker.id)}>
                                             <MoreVertIcon />
@@ -193,7 +252,7 @@ const Settings: React.FC = () => {
                     open={Boolean(menuAnchorEl)}
                     onClose={handleWorkerMenuClose}
                 >
-                    <MenuItem onClick={handleMakeAdmin}>Make Admin</MenuItem>
+                    <MenuItem onClick={handleMakeAdminFromMenu}>Make Admin</MenuItem>
                     <MenuItem onClick={handleRemoveWorkerFromMenu}>Remove Worker</MenuItem>
                 </Menu>
 
@@ -217,6 +276,62 @@ const Settings: React.FC = () => {
                     </Button>
                 </Paper>
             </div>
+
+            {/* Delete Worker Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false); setDeletePassword(''); setWorkerToDelete(null); }}>
+                <DialogTitle>Confirm Deletion</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Please enter the password for <strong>{workerToDelete?.name}</strong> to confirm deletion.
+                    </DialogContentText>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Password"
+                        type="password"
+                        fullWidth
+                        variant="outlined"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => { setDeleteDialogOpen(false); setDeletePassword(''); setWorkerToDelete(null); }} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={confirmDeleteWorker} color="error" variant="contained">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Make Admin Confirmation Dialog */}
+            <Dialog open={makeAdminDialogOpen} onClose={() => { setMakeAdminDialogOpen(false); setMakeAdminPassword(''); setWorkerToMakeAdmin(null); }}>
+                <DialogTitle>Confirm Make Admin</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Please enter the password for <strong>{workerToMakeAdmin?.name}</strong> to confirm making them an admin.
+                    </DialogContentText>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Password"
+                        type="password"
+                        fullWidth
+                        variant="outlined"
+                        value={makeAdminPassword}
+                        onChange={(e) => setMakeAdminPassword(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => { setMakeAdminDialogOpen(false); setMakeAdminPassword(''); setWorkerToMakeAdmin(null); }} color="primary">
+                        Cancel
+                    </Button>
+                    <Button onClick={confirmMakeAdmin} color="primary" variant="contained">
+                        Make Admin
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 };

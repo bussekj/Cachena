@@ -22,11 +22,60 @@ exports.register = async (req, res) => {
     }
 };
 
+exports.deleteUser = async (req, res) => {
+    const { id , password } = req.body;
+    console.log("you touched me")
+    try{
+        let user = await User.findOne({where : {id : id}})
+        console.log(user)
+        const isMatch = await bcrypt.compare(password, user.password)
+
+        if (!isMatch) { 
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        await user.destroy();
+        return res.status(200).json();
+    }
+    catch(error){
+        return res.status(500).json({ error: error.message});
+    }
+}
+
+exports.makeAdmin = async (req, res) => {
+    const {id , password } = req.body;
+    console.log("you touched me")
+    try{
+        let user = await User.findOne({where : {id : id}})
+        console.log(user)
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) { 
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        user.role = "admin"
+        await user.save()
+        return res.status(200).json();
+    }
+    catch(error){
+        return res.status(500).json({ error: error.message});
+    }
+}
+
 exports.getUser = async(req, res) => {
     const { name, password } = req.body;
 
     try {
         let user = await User.findOne({where : {name : name}})
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password)
         if (!isMatch) { 
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -43,3 +92,13 @@ exports.getUser = async(req, res) => {
     }
 };
 
+exports.getUsersByRole = async(req, res) => {
+    const { role } = req.query;
+
+    try {
+        let users = await User.findAll({where : {role : role}})
+        res.json({ users })
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

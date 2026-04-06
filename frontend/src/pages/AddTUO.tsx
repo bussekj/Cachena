@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
+import * as userAPI from '../API/userAPI.ts';
 // import * as userAPI from '../API/userAPI.ts';
 
 const AddTUO: React.FC = () => {
@@ -37,10 +38,14 @@ const AddTUO: React.FC = () => {
     useEffect(() => {
         const fetchWorkers = async () => {
             // TODO: Fetch actual workers here to populate the "Assigned To" dropdown
-            // try {
-            //     const fetchedWorkers = await userAPI.getUsersByRole('worker');
-            //     setWorkers(fetchedWorkers);
-            // } catch (error) { console.error("Error fetching workers:", error); }
+            try {
+                 const fetchedWorkers = await userAPI.getUsersByRole('worker');
+                 
+                 setWorkers(fetchedWorkers);
+             } 
+             catch (error) { 
+                console.error("Error fetching workers:", error); 
+            }
         };
         fetchWorkers();
     }, []);
