@@ -12,19 +12,22 @@ export interface trackerData {
 // -- GET --
 export async function getTracker(trackerId : string):Promise<any>{    
     let params = "?id=" + trackerId;
-    await request(config.endpoint.tracker + '/id' + params, 'GET')
+    return await request(config.endpoint.tracker + '/id' + params, 'GET')
         .then((response : any) => {
             if(response != null){
                 console.log(response)
                 sendMessage('success', response)
+                return response;
             }
             else {
                 console.log("data is null")
+                return null;
             }
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);
-            sendMessage('error', "Login  Failed:" + errorMessage) 
+            sendMessage('error', "Fetch Failed: " + errorMessage) 
+            return null;
         });
 };
 
@@ -35,14 +38,15 @@ export async function postTracker(data : trackerData):Promise<any>{
     let battery = data.battery
     let tagId = data.tagId
 
-    await request(config.endpoint.tracker +'/register', 'POST', { trackerId, location, battery, tagId })
+    return await request(config.endpoint.tracker +'/register', 'POST', { trackerId, location, battery, tagId })
         .then((response) => {
             console.log("response", response)
             sendMessage('success', "Tracker Registration Successful")
+            return response;
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);            
-            sendMessage('error', "Registration  Failed:" + errorMessage)
+            return null;
         });
 };
 
@@ -53,13 +57,15 @@ export async function updateTracker(data : trackerData):Promise<any>{
     let location = data.location
     let battery = data.battery
 
-    await request(config.endpoint.user +'/update', 'POST', { trackerId, location, battery })
+    return await request(config.endpoint.tracker +'/update', 'POST', { trackerId, location, battery })
         .then((response) => {
             console.log("response", response)
-            sendMessage('success', "Tracker Registration Successful")
+            sendMessage('success', "Tracker Update Successful")
+            return response;
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);            
-            sendMessage('error', "Registration  Failed:" + errorMessage)
+            sendMessage('error', "Update Failed:" + errorMessage)
+            return null;
         });
 };

@@ -37,11 +37,12 @@ const AddTUO: React.FC = () => {
 
     useEffect(() => {
         const fetchWorkers = async () => {
-            // TODO: Fetch actual workers here to populate the "Assigned To" dropdown
             try {
-                 const fetchedWorkers = await userAPI.getUsersByRole('worker');
-                 
-                 setWorkers(fetchedWorkers);
+                const [fetchedWorkers, fetchedAdmins] = await Promise.all([
+                    userAPI.getUsersByRole('worker'),
+                    userAPI.getUsersByRole('admin')]);
+                
+                setWorkers([...fetchedWorkers, ...fetchedAdmins]);
              } 
              catch (error) { 
                 console.error("Error fetching workers:", error); 
@@ -69,20 +70,18 @@ const AddTUO: React.FC = () => {
         }
 
         try {
-            // TODO: Ensure backend TUOData interface natively supports `tags` and `assignedTo`.
-            // Temporarily, we serialize tags into the `description` field for backward compatibility.
-            await TUOAPI.postTUO({
+            const newTuo = await TUOAPI.postTUO({
                 name: name,
                 description: JSON.stringify(tags), 
                 is_locked: false
             });
 
-            // Note: To immediately assign a user to the TUO upon creation, 
-            // your backend postTUO route needs to return the newly generated TUO's ID.
             if (assignedTo) {
-                // TODO: Replace 'new-tuo-id' with the actual ID returned from postTUO
-                // await TUOAPI.assignTUO('new-tuo-id', assignedTo);
-                console.log(`TUO ${name} assigned to ${assignedTo}`);
+                const tuoId = newTuo?.id || newTuo?.TUO?.id; // Safely extract ID based on backend response format
+                if (tuoId) {
+                    await TUOAPI.assignTUO(tuoId, assignedTo);
+                    console.log(`TUO ${name} assigned to ${assignedTo}`);
+                }
             }
 
             // Navigate back to home or show success message upon completion

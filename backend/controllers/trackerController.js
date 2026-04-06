@@ -1,4 +1,4 @@
-const { Tracker } = require('../models');
+const { Tracker, TrackedUserObject } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -12,9 +12,10 @@ exports.test = async (req, res) => {
 };
 
 exports.getById = async(req, res) => {
-    const { trackerUUID } = req.query;
+    // Support both frontend '?id=' and potential '?trackerUUID='
+    const id = req.query.id || req.query.trackerUUID; 
     try {
-        let tracker = await Tracker.findOne({where : { trackerUUID : trackerUUID}})
+        let tracker = await Tracker.findOne({where : { trackerUUID : id}})
         res.json({ tracker })
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -25,8 +26,10 @@ exports.assign = async(req, res) => {
     const { trackerUUID, TUOId } = req.body;
     try {
         let trackedUserObject = await TrackedUserObject.findByPk(TUOId)
-        trackedUserObject.addTracker(trackerUUID);
-        trackedUserObject.save()
+        let tracker = await Tracker.findOne({where: { trackerUUID }})
+        
+        // For 1-to-1 relationships, Sequelize uses set<Model> instead of add<Model>
+        await trackedUserObject.setTracker(tracker);
         
         return res.status(201).json(trackedUserObject);
     } catch (error) {
@@ -46,14 +49,14 @@ exports.update = async(req, res) => {
             return
         }
 
-        if (tracker != "")
+        if (tracker)
         {
             tracker.longitude = longitude;
             tracker.latitude = latitude;
-            if (battery != "")
+            if (battery !== undefined && battery !== "")
                 tracker.battery = battery;
+            await tracker.save();
         }
-        tracker.save();
 
         res.json({ tracker })
     } catch (error) {

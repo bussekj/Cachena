@@ -49,6 +49,7 @@ const Settings: React.FC = () => {
                     for (let user of testUsers)
                     {
                         await userAPI.postUser(user);
+                        console.log("you have gotten here");
                     }
                 }
                 
