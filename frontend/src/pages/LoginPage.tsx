@@ -6,8 +6,8 @@ import * as userAPI from '../API/userAPI.ts';
 
 
 const LoginPage = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('guest');
+    const [password, setPassword] = useState('guestp');
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
@@ -20,7 +20,7 @@ const LoginPage = () => {
             // Example:
             // await userAPI.login({ username, password });
             
-            if (username === 'John' && password === 'Doe') {
+            if (username === 'guest' && password === 'guestp') {
                 navigate('/home');
             } else {
                 setError('Invalid username or password');

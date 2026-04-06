@@ -11,19 +11,22 @@ export interface TUOData {
 // -- GET --
 export async function getTUO(TUOId : string):Promise<any>{    
     let params = "?id=" + TUOId;
-    await request(config.endpoint.trackedUserObject + '/id/' + params, 'GET')
+    return await request(config.endpoint.trackedUserObject + '/id/' + params, 'GET')
         .then((response : any) => {
             if(response != null){
                 console.log(response)
                 sendMessage('success', "Got Object")
+                return response;
             }
             else {
                 console.log("data is null")
+                return null;
             }
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);
             sendMessage('error', "Fetch Failed:" + errorMessage) 
+            return null;
         });
 };
 
@@ -71,5 +74,21 @@ export async function assignTUO(TUOId:string, userId:string):Promise<any>{
         .catch((errorMessage) => {
             console.log("error", errorMessage);            
             sendMessage('error', "Tracker Assignment Failed:" + errorMessage)
+        });
+};
+
+
+// Inside trackedUserObjectAPI.ts
+export async function getAllTUOs(): Promise<any> {    
+    return await request(config.endpoint.trackedUserObject + '/getAll', 'GET') // Adjust the endpoint string to match your backend
+        .then((response: any) => {
+            if(response != null){
+                return response;
+            }
+            return [];
+        })
+        .catch((errorMessage) => {
+            console.error("Failed to fetch TUOs: " + errorMessage);
+            return [];
         });
 };

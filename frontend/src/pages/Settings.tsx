@@ -59,8 +59,8 @@ const Settings: React.FC = () => {
                 ]);
                 setWorkers([...fetchedWorkers, ...fetchedAdmins]);
 
-                // const fetchedTUOs = await TUOAPI.getAllTUOs();
-                // setTuos(fetchedTUOs);
+                const fetchedTUOs = await TUOAPI.getAllTUOs();
+                setTuos(fetchedTUOs);
             } catch (error) { console.error("Error fetching data:", error); }
         };
         fetchData();

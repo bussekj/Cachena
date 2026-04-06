@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
+import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
 import {
     AppBar,
     Box,
@@ -70,13 +70,6 @@ const Home: React.FC = () => {
   // Fetch initial data
   useEffect(() => {
     const fetchTuos = async () => {
-        // TODO: Replace mock data with a real API call
-        // try {
-        //     const data = await TUOAPI.getAllTUOs();
-        //     setTuos(data);
-        // } catch (error) { console.error("Failed to fetch TUOs", error); }
-
-        // Using mock data for now
         const mockTuos: TUO[] = [
             { id: 'tuo-001', name: 'GPS Tracker Alpha', status: 'Available', tags: ['gps', 'vehicle'] },
             { id: 'tuo-002', name: 'Asset Tag 54', status: 'Assigned to Alice', tags: ['asset', 'internal'] },
@@ -84,7 +77,35 @@ const Home: React.FC = () => {
             { id: 'tuo-004', name: 'GPS Tracker Bravo', status: 'Available', tags: ['gps', 'high-value'] },
             { id: 'tuo-005', name: 'Container Seal 99', status: 'Assigned to Bob', tags: ['seal', 'shipping'] },
         ];
-        setTuos(mockTuos);
+
+        let realTuos: TUO[] = [];
+        try {
+            const data = await TUOAPI.getAllTUOs();
+            realTuos = (data || []).map((item: any) => {
+                let parsedTags: string[] = [];
+                try { parsedTags = item.description ? JSON.parse(item.description) : []; } 
+                catch (e) { parsedTags = item.description ? [item.description] : []; }
+
+                // Check for user assignment dynamically
+                let currentStatus = 'Available';
+                if (item.User?.name || item.user?.name) {
+                    currentStatus = `Assigned to ${item.User?.name || item.user?.name}`;
+                } else if (item.userId || item.UserId) {
+                    currentStatus = 'Assigned';
+                } else if (item.is_locked) {
+                    currentStatus = 'Locked';
+                }
+
+                return {
+                    id: item.id?.toString(),
+                    name: item.name || 'Unnamed TUO',
+                    status: currentStatus,
+                    tags: parsedTags
+                };
+            });
+        } catch (error) { console.error("Failed to fetch TUOs", error); }
+
+        setTuos([...realTuos, ...mockTuos]);
     };
     fetchTuos();
   }, []);

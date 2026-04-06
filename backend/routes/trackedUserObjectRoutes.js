@@ -7,6 +7,8 @@ const jwtAuth = require('../middleware/authMiddleware');
 router.get('/', trackedUserObjectController.test);
 router.get('/id', trackedUserObjectController.getById);
 router.get('/user', trackedUserObjectController.getByUser);
+router.get('/getAll', trackedUserObjectController.getAll);
+
 
 router.post('/register', trackedUserObjectController.register);
 router.post('/update', trackedUserObjectController.update);

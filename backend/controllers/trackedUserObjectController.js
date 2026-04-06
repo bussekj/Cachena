@@ -11,6 +11,16 @@ exports.test = async (req, res) => {
     }
 };
 
+exports.getAll = async (req, res) => {
+    try {
+        // Fetch all TUOs from the database
+        const tuos = await TrackedUserObject.findAll();
+        res.status(200).json(tuos);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 exports.getById = async(req, res) => {
     const { id } = req.query;
     try {

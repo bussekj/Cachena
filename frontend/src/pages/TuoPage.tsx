@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AppBar, Box, Button, CircularProgress, IconButton, Paper, Toolbar, Typography } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import NavigationIcon from '@mui/icons-material/Navigation';
-// import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
+import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
+import * as trackerAPI from '../API/trackerAPI.ts';
 
 interface Coordinates {
     lat: number;
@@ -42,9 +43,32 @@ const TuoPage: React.FC = () => {
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
     const [tuoLocation, setTuoLocation] = useState<Coordinates | null>(null);
     const [deviceHeading, setDeviceHeading] = useState<number>(0);
+    const [tuoName, setTuoName] = useState<string | null>(null);
+    const [trackerUUID, setTrackerUUID] = useState<string | null>(null);
     
     const [distance, setDistance] = useState<number | null>(null);
     const [bearing, setBearing] = useState<number | null>(null);
+
+    // --- 0. Fetch TUO Details ---
+    useEffect(() => {
+        const fetchTuoDetails = async () => {
+            if (tuoId) {
+                try {
+                    const tuoData = await TUOAPI.getTUO(tuoId);
+                    // Safely extract the name depending on how your backend wraps the response
+                    const name = tuoData?.name || tuoData?.TUO?.name || tuoData?.trackedUserObject?.name;
+                    if (name) setTuoName(name);
+
+                    // Safely extract the associated tracker's UUID from the Eager Loaded data
+                    const uuid = tuoData?.Tracker?.trackerUUID || tuoData?.tracker?.trackerUUID || tuoData?.trackerUUID;
+                    if (uuid) setTrackerUUID(uuid);
+                } catch (error) {
+                    console.error("Failed to fetch TUO details:", error);
+                }
+            }
+        };
+        fetchTuoDetails();
+    }, [tuoId]);
 
     // --- 1. Start Tracking & Compass Permissions ---
     const handleStartTracking = async () => {
@@ -94,41 +118,27 @@ const TuoPage: React.FC = () => {
 
     // --- 3. Poll TUO Location ---
     useEffect(() => {
-        if (!trackingStarted) return;
+        if (!trackingStarted || !trackerUUID) return;
 
         const fetchTuoLocation = async () => {
-            // --- BACKEND INTEGRATION ---
-            // This function should call an endpoint that returns the latest coordinates for the TUO.
-            // The backend is expected to receive location data from the physical tracker (the FreeRTOS device).
-            //
-            // 1. Create a new GET endpoint on your web server, for example:
-            //    GET /api/tuo/location/:tuoId
-            //
-            // 2. This endpoint should return a JSON object with the latitude and longitude:
-            //    { "lat": 34.0522, "lng": -118.2437 }
-            //
-            // 3. Uncomment and adapt the code below to use your actual API client.
-            // try {
-            //     const response = await TUOAPI.getTuoLocation(tuoId); // Assumes a getTuoLocation function in your API client
-            //     setTuoLocation({ lat: response.lat, lng: response.lng });
-            // } catch(error) { console.error("Failed to fetch TUO location:", error); }
-
-            // Mocking a response for demonstration purposes. 
-            // This will be replaced by the actual API call above.
-            setTuoLocation((prev) => {
-                if (!prev && userLocation) {
-                    // Mock: Place the tracker ~500 meters North-East of the user
-                    return { lat: userLocation.lat + 0.003, lng: userLocation.lng + 0.003 };
+            try {
+                const response = await trackerAPI.getTracker(trackerUUID);
+                if (response && response.tracker) {
+                    const { latitude, longitude } = response.tracker;
+                    if (latitude !== undefined && longitude !== undefined) {
+                        setTuoLocation({ lat: latitude, lng: longitude });
+                    }
                 }
-                return prev || { lat: 37.7749, lng: -122.4194 };
-            });
+            } catch(error) { 
+                console.error("Failed to fetch TUO location:", error); 
+            }
         };
 
         fetchTuoLocation(); // Initial fetch
         const intervalId = setInterval(fetchTuoLocation, 3000); // Poll every 3 seconds
 
         return () => clearInterval(intervalId);
-    }, [trackingStarted, tuoId, userLocation]);
+    }, [trackingStarted, trackerUUID]);
 
     // --- 4. Calculate Distance and Bearing ---
     useEffect(() => {
@@ -165,7 +175,7 @@ const TuoPage: React.FC = () => {
                         <ArrowBackIcon />
                     </IconButton>
                     <Typography variant="h6" component="div" textAlign="center">
-                        Locating {tuoId}
+                        Locating {tuoName || tuoId}
                     </Typography>
                 </Toolbar>
             </AppBar>
