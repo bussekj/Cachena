@@ -14,7 +14,9 @@ exports.test = async (req, res) => {
 exports.getAll = async (req, res) => {
     try {
         // Fetch all TUOs from the database
-        const tuos = await TrackedUserObject.findAll();
+        const tuos = await TrackedUserObject.findAll({
+            include: [User] // Eagerly load the assigned User(s)
+        });
         res.status(200).json(tuos);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -79,8 +81,8 @@ exports.assign = async(req, res) => {
     const { TUOId, userId } = req.body;
     try {
         let trackedUserObject = await TrackedUserObject.findByPk(TUOId)
-        trackedUserObject.addUser(userId);
-        trackedUserObject.save()
+        await trackedUserObject.addUser(userId);
+        await trackedUserObject.save();
 
         return res.status(201).json(trackedUserObject);
     } catch (error) {

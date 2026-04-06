@@ -77,7 +77,7 @@ const AddTUO: React.FC = () => {
             });
 
             if (assignedTo) {
-                const tuoId = newTuo?.id || newTuo?.TUO?.id; // Safely extract ID based on backend response format
+                const tuoId = newTuo?.id || newTuo?.TUO?.id || newTuo?.trackedUserObject?.id || newTuo?.data?.id; // Safely extract ID based on backend response format
                 if (tuoId) {
                     await TUOAPI.assignTUO(tuoId, assignedTo);
                     console.log(`TUO ${name} assigned to ${assignedTo}`);

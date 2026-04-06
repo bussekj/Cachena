@@ -88,7 +88,15 @@ const Home: React.FC = () => {
 
                 // Check for user assignment dynamically
                 let currentStatus = 'Available';
-                if (item.User?.name || item.user?.name) {
+                const assignedUsers = item.Users || item.users;
+                
+                if (Array.isArray(assignedUsers) && assignedUsers.length > 0) {
+                    if (assignedUsers.length > 1) {
+                        currentStatus = 'Assigned';
+                    } else {
+                        currentStatus = `Assigned to ${assignedUsers[0].name}`;
+                    }
+                } else if (item.User?.name || item.user?.name) {
                     currentStatus = `Assigned to ${item.User?.name || item.user?.name}`;
                 } else if (item.userId || item.UserId) {
                     currentStatus = 'Assigned';
@@ -190,7 +198,17 @@ const Home: React.FC = () => {
             <List>
                 {filteredTuos.map((tuo) => (
                     <ListItem key={tuo.id} disablePadding sx={{ pl: '1rem', pr: '1rem', pb: '0.5rem' }}>
-                        <Paper elevation={2} sx={{ width: '100%' }}>
+                        <Paper 
+                            elevation={2} 
+                            sx={{ 
+                                width: '100%',
+                                transition: 'transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out',
+                                '&:active': {
+                                    transform: 'scale(0.98)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                                }
+                            }}
+                        >
                             <ListItemButton onClick={() => handleTuoClick(tuo.id)}>
                                 <ListItemText primary={tuo.name} secondary={tuo.status} />
                             </ListItemButton>

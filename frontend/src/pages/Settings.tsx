@@ -110,9 +110,13 @@ const Settings: React.FC = () => {
                 role: 'worker' // Explicitly assigning the worker role
             });
 
-            // Locally update the list to reflect the change visually
-            // setWorkers([...workers, { id: Date.now().toString(), name: newWorkerName }]);
-            // updateWorkerData();
+            // Refresh the worker list to reflect the change visually
+            const [fetchedWorkers, fetchedAdmins] = await Promise.all([
+                userAPI.getUsersByRole('worker'),
+                userAPI.getUsersByRole('admin')
+            ]);
+            setWorkers([...fetchedWorkers, ...fetchedAdmins]);
+
             setNewWorkerName('');
             setNewWorkerEmail('');
             setNewWorkerPassword('');

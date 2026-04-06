@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AppBar, Box, Button, CircularProgress, IconButton, Paper, Toolbar, Typography } from '@mui/material';
+import { AppBar, Box, Button, Chip, CircularProgress, IconButton, Paper, Toolbar, Typography } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import NavigationIcon from '@mui/icons-material/Navigation';
 import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
@@ -45,6 +45,7 @@ const TuoPage: React.FC = () => {
     const [deviceHeading, setDeviceHeading] = useState<number>(0);
     const [tuoName, setTuoName] = useState<string | null>(null);
     const [trackerUUID, setTrackerUUID] = useState<string | null>(null);
+    const [tags, setTags] = useState<string[]>([]);
     
     const [distance, setDistance] = useState<number | null>(null);
     const [bearing, setBearing] = useState<number | null>(null);
@@ -58,6 +59,13 @@ const TuoPage: React.FC = () => {
                     // Safely extract the name depending on how your backend wraps the response
                     const name = tuoData?.name || tuoData?.TUO?.name || tuoData?.trackedUserObject?.name;
                     if (name) setTuoName(name);
+
+                    // Extract tags from description
+                    const description = tuoData?.description || tuoData?.TUO?.description || tuoData?.trackedUserObject?.description;
+                    let parsedTags: string[] = [];
+                    try { parsedTags = description ? JSON.parse(description) : []; }
+                    catch (e) { parsedTags = description ? [description] : []; }
+                    setTags(parsedTags);
 
                     // Safely extract the associated tracker's UUID from the Eager Loaded data
                     const uuid = tuoData?.Tracker?.trackerUUID || tuoData?.tracker?.trackerUUID || tuoData?.trackerUUID;
@@ -180,6 +188,15 @@ const TuoPage: React.FC = () => {
                 </Toolbar>
             </AppBar>
             
+            {/* Tags Display */}
+            {tags.length > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, p: 1.5, flexWrap: 'wrap', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', zIndex: 1 }}>
+                    {tags.map((tag, idx) => (
+                        <Chip key={idx} label={tag} size="small" color="primary" variant="outlined" />
+                    ))}
+                </Box>
+            )}
+
             {!trackingStarted ? (
                 <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3, textAlign: 'center' }}>
                     <Paper sx={{ p: 4, borderRadius: 4, maxWidth: '400px' }} elevation={3}>
