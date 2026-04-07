@@ -3,6 +3,7 @@ import time
 import requests
 import random
 import json
+import os
 from jsonschema import validate, ValidationError
 
 # Created by Corey
@@ -17,8 +18,10 @@ def send_post_data(url, payload):
     print(response.status_code)
     print(response.text)
 
-# Example: $GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73
-url = "http://127.0.0.1:5000/api/tracker/update"
+# Use the BACKEND_URL environment variable if provided (for Docker), otherwise default to local
+base_url = os.environ.get("BACKEND_URL", "http://127.0.0.1:5000")
+url = f"{base_url}/api/tracker/update"
+
 # Example GPS SerialData: 
 def validate_GPS_data(data):
     if not "GPSDATA:" in data:

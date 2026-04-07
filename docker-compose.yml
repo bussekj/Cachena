@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: docker.io/library/mariadb:10.11
+    container_name: cachena-db
+    environment:
+      - MARIADB_ROOT_PASSWORD=rootsecret
+      - MARIADB_DATABASE=db
+      - MARIADB_USER=guest
+      - MARIADB_PASSWORD=duck6887
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    image: localhost/cachena-backend
+    container_name: cachena-backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: localhost/cachena-frontend
+    container_name: cachena-frontend
+    ports:
+      - "3000:80" # Map local port 3000 to container port 80 (Nginx)
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  monitoring:
+    build: ./gps_monitoring_service
+    image: localhost/cachena-monitoring
+    container_name: cachena-monitoring
+    depends_on:
+      - backend
+    environment:
+      # You can pass environment variables here so the monitor knows how to hit the backend
+      - BACKEND_URL=http://backend:5000
+    restart: unless-stopped
+
+volumes:
+  db_data:

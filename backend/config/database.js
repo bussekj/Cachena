@@ -12,7 +12,7 @@ const sequelize = new Sequelize({
   database: 'db',
   user: 'guest',
   password: 'duck6887',
-  host: 'localhost',
+  host: process.env.DB_HOST || 'localhost',
   port: 3306,
   showWarnings: true,
   connectTimeout: 1000,

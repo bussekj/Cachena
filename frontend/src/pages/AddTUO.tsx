@@ -129,7 +129,15 @@ const AddTUO: React.FC = () => {
                         </Box>
                     </Box>
 
-                    <Button variant="contained" color="primary" size="large" onClick={handleSubmit}>Create TUO</Button>
+                    <Button 
+                        variant="contained" 
+                        color="primary" 
+                        size="large" 
+                        onClick={handleSubmit}
+                        disabled={!name.trim()}
+                    >
+                        Create TUO
+                    </Button>
                 </Paper>
             </div>
         </div>
