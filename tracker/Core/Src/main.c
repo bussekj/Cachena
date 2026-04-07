@@ -118,7 +118,7 @@ static GPS_Message_Queue_t  gpsData = {0,0,0,0,0};
   * @brief  The application entry point.
   * @retval int
   */
-#define TRACKER
+//#define TRACKER
 int main(void)
 {
 
@@ -165,9 +165,10 @@ int main(void)
   }
 
   // Create threads
-  blinkerTaskHandle = osThreadNew(StartBlinkerTask, NULL, &blinkerTask_attributes);
+//  blinkerTaskHandle = osThreadNew(StartBlinkerTask, NULL, &blinkerTask_attributes);
+
 #ifdef TRACKER
-  trackerTaskHandle = osThreadNew(StartTrackerTask, NULL, &trackerTask_attributes);
+//  trackerTaskHandle = osThreadNew(StartTrackerTask, NULL, &trackerTask_attributes);
 #else
   receiverTaskHandle = osThreadNew(StartReceiverTask, NULL, &receiverTask_attributes);
 #endif
@@ -188,23 +189,30 @@ int main(void)
 void gpsData_to_buffer(GPS_Message_Queue_t *msg, char *buffer)
 {
   // Convert the GPS data to a byte buffer for transmission
-    snprintf(buffer, 255, "\"UUID\":%d,\"lat\":%d,\"lon\":%d,\"battery\":%d",
+    snprintf(buffer, 255, "\"UUID\":%d,\"lat\":%d,\"lon\":%d,\"battery\":%d\0",
     		msg->trackerId,
 			msg->latitude, msg->longitude,
 			msg->batteryLevel);
 }
 
+#define GPSTESTDATA "$GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73\n\0"
 void StartReceiverTask(void *argument)
 {
-	osStatus_t status;
-	while (1)
+	int16_t rssi = -16;
+	int8_t LoraSnr_FskCfo = 2;
+	char rawGPSBuffer[128]= {0};
+	for (;;)
 	{
-		osSemaphoreAcquire(radioBinarySemHandle, osWaitForever);
-		RadioReceive(0);
 		osDelay(1000);
+		strcpy(rawGPSBuffer, GPSTESTDATA);
+		parse_sentence(rawGPSBuffer, &gpsData);
+		gpsData_to_buffer(&gpsData, rawGPSBuffer);
+		APP_LOG(TS_OFF, VLEVEL_L, "\r\nGPSDATA:{");
+		APP_LOG(TS_OFF, VLEVEL_L, "%s", rawGPSBuffer);
+		APP_LOG(TS_OFF	, VLEVEL_L, ",\"RssiValue\":-16,\"SnrValue\":2}\r\n");
+		APP_LOG(TS_OFF, VLEVEL_L, "\r\n");
 	}
 }
-#define GPSTESTDATA "$GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73\n\0"
 void testingPass(char* buffer, GPS_Message_Queue_t* gpsData);
 void StartTrackerTask(void *argument)
 {
@@ -235,7 +243,7 @@ void StartTrackerTask(void *argument)
 
 				rawGPSBuffer[bytesRead] = '\0';
 				bytesRead = 0;
-//				strcpy(rawGPSBuffer, GPSTESTDATA);
+				strcpy(rawGPSBuffer, GPSTESTDATA);
 				parse_sentence(rawGPSBuffer, &gpsData);
 				if(gpsData.isValid)
 				{
