@@ -177,7 +177,7 @@ export const HandleMessages = ({children}:any) =>{
           variant="filled"
           sx={{ width: '100%' }}
         >
-          {message.message}
+          {typeof message.message === 'object' && message.message !== null ? JSON.stringify(message.message) : message.message}
         </Alert>
       </Snackbar>
     </div>

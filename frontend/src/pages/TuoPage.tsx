@@ -46,9 +46,13 @@ const TuoPage: React.FC = () => {
     const [tuoName, setTuoName] = useState<string | null>(null);
     const [trackerUUID, setTrackerUUID] = useState<string | null>(null);
     const [tags, setTags] = useState<string[]>([]);
+    const [isLocked, setIsLocked] = useState<boolean>(false);
     
     const [distance, setDistance] = useState<number | null>(null);
     const [bearing, setBearing] = useState<number | null>(null);
+    const [battery, setBattery] = useState<number | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+    const [assignmentStatus, setAssignmentStatus] = useState<string>('Available for assignment');
 
     // --- 0. Fetch TUO Details ---
     useEffect(() => {
@@ -58,17 +62,51 @@ const TuoPage: React.FC = () => {
                     const tuoData = await TUOAPI.getTUO(tuoId);
                     // Safely extract the name depending on how your backend wraps the response
                     const name = tuoData?.name || tuoData?.TUO?.name || tuoData?.trackedUserObject?.name;
-                    if (name) setTuoName(name);
+                    if (name) setTuoName(typeof name === 'object' ? JSON.stringify(name) : String(name));
 
                     // Extract tags from description
                     const description = tuoData?.description || tuoData?.TUO?.description || tuoData?.trackedUserObject?.description;
                     let parsedTags: string[] = [];
-                    try { parsedTags = description ? JSON.parse(description) : []; }
-                    catch (e) { parsedTags = description ? [description] : []; }
+                    try { 
+                        const parsed = description ? JSON.parse(description) : []; 
+                        if (Array.isArray(parsed)) {
+                            parsedTags = parsed.map((t: any) => typeof t === 'string' ? t : JSON.stringify(t));
+                        } else if (typeof parsed === 'object' && parsed !== null) {
+                            parsedTags = [JSON.stringify(parsed)];
+                        } else {
+                            parsedTags = [String(parsed)];
+                        }
+                } catch (e) { 
+                    parsedTags = description ? [typeof description === 'object' ? JSON.stringify(description) : String(description)] : []; 
+                }
                     setTags(parsedTags);
 
-                    // Safely extract the associated tracker's UUID from the Eager Loaded data
-                    const uuid = tuoData?.Tracker?.trackerUUID || tuoData?.tracker?.trackerUUID || tuoData?.trackerUUID;
+                const lockedStatus = tuoData?.is_locked || tuoData?.TUO?.is_locked || tuoData?.trackedUserObject?.is_locked;
+                setIsLocked(Boolean(lockedStatus));
+
+                // Extract Assignment Status
+                let currentStatus = 'Available for assignment';
+                const baseTuo = tuoData?.trackedUserObject || tuoData?.TUO || tuoData;
+                const assignedUsers = baseTuo?.Users || baseTuo?.users;
+                
+                if (Array.isArray(assignedUsers) && assignedUsers.length > 0) {
+                    if (assignedUsers.length > 1) {
+                        const names = assignedUsers.map((u: any) => typeof u.name === 'object' ? JSON.stringify(u.name) : String(u.name)).join(', ');
+                        currentStatus = `Assigned to ${names}`;
+                    } else {
+                        const assignedName = assignedUsers[0].name;
+                        currentStatus = `Assigned to ${typeof assignedName === 'object' ? JSON.stringify(assignedName) : String(assignedName)}`;
+                    }
+                } else if (baseTuo?.User?.name || baseTuo?.user?.name) {
+                    const userName = baseTuo?.User?.name || baseTuo?.user?.name;
+                    currentStatus = `Assigned to ${typeof userName === 'object' ? JSON.stringify(userName) : String(userName)}`;
+                } else if (baseTuo?.userId || baseTuo?.UserId) {
+                    currentStatus = 'Assigned';
+                }
+                setAssignmentStatus(currentStatus);
+
+                    // Safely extract the associated tracker's UUID, falling back to tuoId if there's no explicit link
+                    const uuid = tuoData?.Tracker?.trackerUUID || tuoData?.tracker?.trackerUUID || tuoData?.trackerUUID || tuoId;
                     if (uuid) setTrackerUUID(uuid);
                 } catch (error) {
                     console.error("Failed to fetch TUO details:", error);
@@ -100,9 +138,9 @@ const TuoPage: React.FC = () => {
     const handleOrientation = useCallback((event: any) => {
         let heading = 0;
         // iOS uses webkitCompassHeading, Android/Standard uses alpha
-        if (event.webkitCompassHeading) {
+        if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
             heading = event.webkitCompassHeading;
-        } else if (event.alpha !== null) {
+        } else if (event.alpha !== undefined && event.alpha !== null) {
             // The alpha value is 0-360, representing rotation around z-axis. 0 is North.
             heading = 360 - event.alpha; // Convert counter-clockwise alpha to clockwise heading
         }
@@ -117,7 +155,11 @@ const TuoPage: React.FC = () => {
             (pos) => {
                 setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
             },
-            (err) => console.error("Error watching position", err),
+            (err) => {
+                console.error("Error watching position", err);
+                // Optional: Uncomment the line below to fallback to a fake location for local testing if your browser blocks GPS
+                //setUserLocation({ lat: 8.3850, lng: -4.9570 }); 
+            },
             { enableHighAccuracy: true, maximumAge: 0 }
         );
 
@@ -131,11 +173,23 @@ const TuoPage: React.FC = () => {
         const fetchTuoLocation = async () => {
             try {
                 const response = await trackerAPI.getTracker(trackerUUID);
-                if (response && response.tracker) {
-                    const { latitude, longitude } = response.tracker;
-                    if (latitude !== undefined && longitude !== undefined) {
-                        setTuoLocation({ lat: latitude, lng: longitude });
+                
+                // Safely extract the tracker object whether it's wrapped in Axios 'data' or a custom 'message' wrapper
+                const payload = response?.data || response;
+                const extracted = payload?.tracker || payload?.message?.tracker || payload;
+                const trackerData = Array.isArray(extracted) ? extracted[0] : extracted;
+                
+                if (trackerData) {
+                    const lat = trackerData.latitude ?? trackerData.lat;
+                    const lng = trackerData.longitude ?? trackerData.lng ?? trackerData.long;
+                    const bat = trackerData.battery;
+                    const updated = trackerData.updatedAt;
+                    
+                    if (lat !== undefined && lng !== undefined) {
+                        setTuoLocation({ lat: Number(lat), lng: Number(lng) });
                     }
+                    if (bat !== undefined && bat !== null) setBattery(Number(bat));
+                    if (updated) setLastUpdated(new Date(updated).toLocaleTimeString());
                 }
             } catch(error) { 
                 console.error("Failed to fetch TUO location:", error); 
@@ -143,7 +197,7 @@ const TuoPage: React.FC = () => {
         };
 
         fetchTuoLocation(); // Initial fetch
-        const intervalId = setInterval(fetchTuoLocation, 3000); // Poll every 3 seconds
+        const intervalId = setInterval(fetchTuoLocation, 2000); // Poll every 2 seconds
 
         return () => clearInterval(intervalId);
     }, [trackingStarted, trackerUUID]);
@@ -172,19 +226,46 @@ const TuoPage: React.FC = () => {
         return `${(meters / 1000).toFixed(2)} km`;
     };
 
+    const handleToggleLock = async () => {
+        if (!tuoId) return;
+        const newStatus = !isLocked;
+        setIsLocked(newStatus); // Optimistic update for snappy UI
+        
+        try {
+            await TUOAPI.updateTUO(tuoId, { is_locked: newStatus });
+        } catch (error) {
+            setIsLocked(!newStatus); // Revert UI if backend fails
+            console.error("Failed to update lock status", error);
+        }
+    };
+
     // The arrow rotates to point toward the TUO relative to the device's physical heading
     const arrowRotation = bearing !== null ? (bearing - deviceHeading) : 0;
 
     return (
         <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
             <AppBar position="static">
-                <Toolbar sx={{ position: 'relative', justifyContent: 'center' }}>
-                    <IconButton edge="start" color="inherit" onClick={() => navigate('/home')} aria-label="back" sx={{ position: 'absolute', left: 16 }}>
+                <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <IconButton edge="start" color="inherit" onClick={() => navigate('/home')} aria-label="back">
                         <ArrowBackIcon />
                     </IconButton>
-                    <Typography variant="h6" component="div" textAlign="center">
-                        Locating {tuoName || tuoId}
-                    </Typography>
+                    
+                    <Box sx={{ 
+                        backgroundColor: 'rgba(0, 0, 0, 0.12)', 
+                        borderRadius: '16px', 
+                        px: { xs: 2, sm: 3 }, 
+                        py: 0.5,
+                        maxWidth: '65%'
+                    }}>
+                        <Typography variant="h6" component="div" textAlign="center" noWrap sx={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white', textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
+                            Locating {tuoName || tuoId}
+                        </Typography>
+                    </Box>
+
+                    {/* Invisible placeholder button to perfectly center the title */}
+                    <IconButton edge="end" disabled sx={{ visibility: 'hidden' }}>
+                        <ArrowBackIcon />
+                    </IconButton>
                 </Toolbar>
             </AppBar>
             
@@ -212,7 +293,10 @@ const TuoPage: React.FC = () => {
             ) : (!userLocation || !tuoLocation || distance === null) ? (
                 <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <CircularProgress size={60} thickness={4} />
-                    <Typography variant="h6" sx={{ mt: 3, color: 'text.secondary' }}>Acquiring Signal...</Typography>
+                    <Typography variant="h6" sx={{ mt: 3, color: 'text.secondary', textAlign: 'center' }}>
+                        {!userLocation ? "Waiting for your device's GPS..." : !tuoLocation ? "Searching for tracker..." : "Calculating distance..."}
+                    </Typography>
+                    {!userLocation && <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>Ensure browser location permissions are allowed.</Typography>}
                 </Box>
             ) : (
                 <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-around', p: 3 }}>
@@ -239,13 +323,43 @@ const TuoPage: React.FC = () => {
                     </Box>
 
                     {/* Distance Text */}
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Typography variant="h2" fontWeight="fontWeightBold" color="primary">
+                    <Box sx={{ textAlign: 'center', mt: 2 }}>
+                        <Typography variant="h3" fontWeight="fontWeightBold" color="primary">
                             {formatDistance(distance)}
                         </Typography>
-                        <Typography variant="h6" color="textSecondary" sx={{ mt: 1 }}>
+                        <Typography variant="subtitle1" color="textSecondary">
                             Away
                         </Typography>
+                        
+                        {/* Tracking Data Details */}
+                        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Typography variant="body2" color="textPrimary" fontWeight="bold">
+                                {assignmentStatus}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                                Coordinates: {tuoLocation.lat.toFixed(5)}, {tuoLocation.lng.toFixed(5)}
+                            </Typography>
+                            {battery !== null && (
+                                <Typography variant="body2" color={battery > 20 ? 'success.main' : 'error.main'}>
+                                    Battery: {battery}%
+                                </Typography>
+                            )}
+                            {lastUpdated && (
+                                <Typography variant="body2" color="textSecondary">
+                                    Last Updated: {lastUpdated}
+                                </Typography>
+                            )}
+                        </Box>
+                        
+                        {/* Lock Button */}
+                        <Button 
+                            variant="contained" 
+                            color={isLocked ? "error" : "success"} 
+                            onClick={handleToggleLock}
+                            sx={{ mt: 3, borderRadius: '20px', px: 4, textTransform: 'none', fontWeight: 'bold' }}
+                        >
+                            {isLocked ? "Locked" : "Unlocked"}
+                        </Button>
                     </Box>
                 </Box>
             )}

@@ -38,7 +38,12 @@ exports.assign = async(req, res) => {
 };
 
 exports.update = async(req, res) => {
-    const { UUID, lat, lon, battery, RssiValue, SnrValue } = req.body;
+    // Safely extract lat/lon and UUID allowing for different naming conventions from the data pump
+    const lat = req.body.lat ?? req.body.latitude;
+    const lon = req.body.lon ?? req.body.long ?? req.body.longitude;
+    const UUID = req.body.UUID ?? req.body.tracker ?? req.body.trackerUUID;
+    const { battery, RssiValue, SnrValue } = req.body;
+
     let latitude = lat / 10000;
     let longitude = lon / 10000;
     try {

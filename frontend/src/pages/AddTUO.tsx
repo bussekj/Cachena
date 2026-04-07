@@ -114,7 +114,7 @@ const AddTUO: React.FC = () => {
                         <InputLabel>Assigned To (Optional)</InputLabel>
                         <Select value={assignedTo} label="Assigned To (Optional)" onChange={(e) => setAssignedTo(e.target.value as string)}>
                             <MenuItem value=""><em>None</em></MenuItem>
-                            {workers.map((worker) => <MenuItem key={worker.id} value={worker.id}>{worker.name}</MenuItem>)}
+                            {workers.map((worker) => <MenuItem key={worker.id} value={worker.id}>{typeof worker.name === 'object' ? JSON.stringify(worker.name) : worker.name}</MenuItem>)}
                         </Select>
                     </FormControl>
 

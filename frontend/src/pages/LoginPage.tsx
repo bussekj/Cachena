@@ -36,7 +36,7 @@ const LoginPage = () => {
             <Container component="main" maxWidth="xs">
                 <Paper elevation={3} className="login-paper">
                     <Typography component="h1" variant="h5">
-                        Sign in
+                        Sign In
                     </Typography>
                     {error && (
                         <Typography color="error" variant="body2" align="center" style={{ marginTop: '10px' }}>

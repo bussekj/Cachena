@@ -7,13 +7,14 @@ import NotFoundPage from './pages/404.tsx'
 import Settings from './pages/Settings.tsx';
 import AddTUO from './pages/AddTUO.tsx';
 import TuoPage from './pages/TuoPage.tsx';
+import LoadTestData from './pages/LoadTestData.tsx';
 import { HandleMessages } from './styling/components.tsx';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import './styling/fonts.css';
 
 const theme = createTheme({
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Lato", "Roboto", "Helvetica", "Arial", sans-serif',
   },
   palette: {
     primary: {
@@ -36,6 +37,7 @@ function App() {
               <Route path="/settings" element={<Settings/>}/>
               <Route path="/add-tuo" element={<AddTUO/>}/>
               <Route path="/tuo/:tuoId" element={<TuoPage />} />
+              <Route path="/loadtestdata" element={<LoadTestData />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

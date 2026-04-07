@@ -15,7 +15,7 @@ export async function getTUO(TUOId : string):Promise<any>{
         .then((response : any) => {
             if(response != null){
                 console.log(response)
-                sendMessage('success', "Got Object")
+                // sendMessage('success', "Got Object")
                 return response;
             }
             else {
@@ -53,16 +53,31 @@ export async function postTUO(data : TUOData):Promise<any>{
     let name = data.name
     let description = data.description
 
-    await request(config.endpoint.trackedUserObject + '/register', 'POST', { name, description })
+    return await request(config.endpoint.trackedUserObject + '/register', 'POST', { name, description })
         .then((response) => {
             console.log("response", response)
             sendMessage('success', "Tracker Registration Successful")
+            return response;
         })
         .catch((errorMessage) => {
             console.log("error", errorMessage);            
             sendMessage('error', "Tracker Registration Failed:" + errorMessage)
+            return null;
         });
 };
+
+// -- UPDATE --
+export async function updateTUO(id: string, data: Partial<TUOData>): Promise<any> {
+    return await request(config.endpoint.trackedUserObject + '/update', 'POST', { id, ...data })
+        .then((response) => {
+            return response;
+        })
+        .catch((errorMessage) => {
+            console.error("error", errorMessage);
+            sendMessage('error', "Update Failed: " + errorMessage);
+            return null;
+        });
+}
 
 export async function assignTUO(TUOId:string, userId:string):Promise<any>{
 

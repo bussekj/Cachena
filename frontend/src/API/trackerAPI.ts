@@ -16,7 +16,7 @@ export async function getTracker(trackerId : string):Promise<any>{
         .then((response : any) => {
             if(response != null){
                 console.log(response)
-                sendMessage('success', response)
+                // sendMessage('success', response)
                 return response;
             }
             else {

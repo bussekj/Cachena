@@ -6,20 +6,19 @@ import json
 from jsonschema import validate, ValidationError
 
 # Created by Corey
-GPS_schema = {
-    "id":"number",
-    "lat":"number",
-    "lon":"number",
-    "battery":"number"
-}
+# UUID, lat, lon, battery, RssiValue, SnrValue
+
 def send_post_data(url, payload):
     print(f'{url=}\n{payload=}')
-    response = requests.post(url, json=payload)
+    try:
+        response = requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Error: {e}")
     print(response.status_code)
     print(response.text)
 
 # Example: $GPGLL,3908.53679,N,08437.66193,W,212204.00,A,A*73
-url = "http://localhost:5000/api/tracker/update"
+url = "http://127.0.0.1:5000/api/tracker/update"
 # Example GPS SerialData: 
 def validate_GPS_data(data):
     if not "GPSDATA:" in data:
@@ -72,8 +71,28 @@ def read_serial_data(port_name, baud_rate):
             ser.close()
             print("Serial port closed.")
 
+def read_fake_data():
+    while True:
+        payload = {
+            "UUID": random.randint(1, 5),
+            "lat": int(39.142444 * 10000),
+            "lon": int(-84.62985 * 10000),
+            "battery": int(99),
+            "RssiValue": int(random.uniform(-100, 0)),
+            "SnrValue": int(random.uniform(0, 50))
+        }
+        
+        try:
+            send_post_data(url, payload)
+        except: 
+            print("Failed to send")
+        time.sleep(5)  # Send data every 5 seconds
+        
 if __name__ == '__main__':
     SERIAL_PORT = "/dev/ttyUSB0"  # Replace with your actual port name
     BAUD_RATE = 115200              # Replace with your device's baud rate (e.g., 115200)
 
-    read_serial_data(SERIAL_PORT, BAUD_RATE)
+    #read_serial_data(SERIAL_PORT, BAUD_RATE)
+
+    read_fake_data()
+        

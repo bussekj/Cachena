@@ -4,6 +4,7 @@ import * as TUOAPI from '../API/trackedUserObjectAPI.ts';
 import {
     AppBar,
     Box,
+    CircularProgress,
     Fab,
     IconButton,
     InputBase,
@@ -16,10 +17,12 @@ import {
     MenuItem,
     Paper,
     Toolbar,
+    Tooltip,
     Typography
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import AddIcon from '@mui/icons-material/Add';
+import LockIcon from '@mui/icons-material/Lock';
 import SearchIcon from '@mui/icons-material/Search';
 
 // Mock TUO interface until it's defined in an API file
@@ -28,6 +31,7 @@ interface TUO {
     name: string;
     status: string; // e.g., "Available", "Assigned to Worker X"
     tags: string[];
+    assignmentString?: string;
 }
 
 const Home: React.FC = () => {
@@ -67,56 +71,73 @@ const Home: React.FC = () => {
 
   // --- Data Fetching and Filtering ---
 
-  // Fetch initial data
-  useEffect(() => {
-    const fetchTuos = async () => {
-        const mockTuos: TUO[] = [
-            { id: 'tuo-001', name: 'GPS Tracker Alpha', status: 'Available', tags: ['gps', 'vehicle'] },
-            { id: 'tuo-002', name: 'Asset Tag 54', status: 'Assigned to Alice', tags: ['asset', 'internal'] },
-            { id: 'tuo-003', name: 'Vehicle Unit 7', status: 'In Repair', tags: ['gps', 'vehicle'] },
-            { id: 'tuo-004', name: 'GPS Tracker Bravo', status: 'Available', tags: ['gps', 'high-value'] },
-            { id: 'tuo-005', name: 'Container Seal 99', status: 'Assigned to Bob', tags: ['seal', 'shipping'] },
-        ];
+  const [isLocking, setIsLocking] = useState(false);
 
+  const fetchTuos = async () => {
         let realTuos: TUO[] = [];
         try {
             const data = await TUOAPI.getAllTUOs();
             realTuos = (data || []).map((item: any) => {
                 let parsedTags: string[] = [];
-                try { parsedTags = item.description ? JSON.parse(item.description) : []; } 
-                catch (e) { parsedTags = item.description ? [item.description] : []; }
-
-                // Check for user assignment dynamically
-                let currentStatus = 'Available';
-                const assignedUsers = item.Users || item.users;
-                
-                if (Array.isArray(assignedUsers) && assignedUsers.length > 0) {
-                    if (assignedUsers.length > 1) {
-                        currentStatus = 'Assigned';
+                try { 
+                    const parsed = item.description ? JSON.parse(item.description) : []; 
+                    if (Array.isArray(parsed)) {
+                        parsedTags = parsed.map((t: any) => typeof t === 'string' ? t : JSON.stringify(t));
+                    } else if (typeof parsed === 'object' && parsed !== null) {
+                        parsedTags = [JSON.stringify(parsed)];
                     } else {
-                        currentStatus = `Assigned to ${assignedUsers[0].name}`;
+                        parsedTags = [String(parsed)];
                     }
-                } else if (item.User?.name || item.user?.name) {
-                    currentStatus = `Assigned to ${item.User?.name || item.user?.name}`;
-                } else if (item.userId || item.UserId) {
-                    currentStatus = 'Assigned';
-                } else if (item.is_locked) {
-                    currentStatus = 'Locked';
+                } catch (e) { 
+                    parsedTags = item.description ? [typeof item.description === 'object' ? JSON.stringify(item.description) : String(item.description)] : []; 
                 }
+
+                // Extract assignment data purely for background search functionality
+                let assignmentString = 'available';
+                const assignedUsers = item.Users || item.users;
+                if (Array.isArray(assignedUsers) && assignedUsers.length > 0) {
+                    assignmentString = assignedUsers.map((u: any) => typeof u.name === 'object' ? JSON.stringify(u.name) : String(u.name)).join(', ');
+                } else if (item.User?.name || item.user?.name) {
+                    const userName = item.User?.name || item.user?.name;
+                    assignmentString = typeof userName === 'object' ? JSON.stringify(userName) : String(userName);
+                } else if (item.userId || item.UserId) {
+                    assignmentString = 'assigned';
+                }
+
+                // Determine status based on lock state
+                const currentStatus = item.is_locked ? 'Locked' : 'Unlocked';
 
                 return {
                     id: item.id?.toString(),
-                    name: item.name || 'Unnamed TUO',
+                    name: item.name ? (typeof item.name === 'object' ? JSON.stringify(item.name) : String(item.name)) : 'Unnamed TUO',
                     status: currentStatus,
-                    tags: parsedTags
+                    tags: parsedTags,
+                    assignmentString
                 };
             });
         } catch (error) { console.error("Failed to fetch TUOs", error); }
 
-        setTuos([...realTuos, ...mockTuos]);
-    };
+        setTuos(realTuos);
+  };
+
+  // Fetch initial data
+  useEffect(() => {
     fetchTuos();
   }, []);
+
+  const handleLockFiltered = async () => {
+    if (filteredTuos.length === 0) return;
+    setIsLocking(true);
+    for (const tuo of filteredTuos) {
+        try {
+            await TUOAPI.updateTUO(tuo.id, { is_locked: true });
+        } catch (error) {
+            console.error(`Failed to lock TUO ${tuo.id}`, error);
+        }
+    }
+    await fetchTuos(); // Refresh the list to reflect locked status
+    setIsLocking(false);
+  };
 
   // Filter TUOs based on search query
   useEffect(() => {
@@ -134,7 +155,8 @@ const Home: React.FC = () => {
                 const inName = tuo.name.toLowerCase().includes(term);
                 const inStatus = tuo.status.toLowerCase().includes(term);
                 const inTags = tuo.tags.some(tag => tag.toLowerCase().includes(term));
-                return inName || inStatus || inTags;
+                const inAssignment = (tuo.assignmentString || '').toLowerCase().includes(term);
+                return inName || inStatus || inTags || inAssignment;
             });
         });
         setFilteredTuos(filtered);
@@ -187,10 +209,17 @@ const Home: React.FC = () => {
             <SearchIcon sx={{ color: 'action.active', mr: 1 }} />
             <InputBase
                 sx={{ ml: 1, flex: 1 }}
-                placeholder="Search by name, status, or tag..."
+                placeholder="Search by name, user, status, or tag..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
             />
+        {searchQuery.trim().length > 0 && filteredTuos.length > 0 && (
+            <Tooltip title={`Lock all ${filteredTuos.length} search result(s)`}>
+                <IconButton color="error" onClick={handleLockFiltered} disabled={isLocking}>
+                    {isLocking ? <CircularProgress size={24} color="inherit" /> : <LockIcon />}
+                </IconButton>
+            </Tooltip>
+        )}
           </Paper>
 
           {/* TUO List */}

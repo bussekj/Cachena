@@ -26,7 +26,10 @@ exports.getAll = async (req, res) => {
 exports.getById = async(req, res) => {
     const { id } = req.query;
     try {
-        let trackedUserObject = await TrackedUserObject.findOne({where : { id }})
+        let trackedUserObject = await TrackedUserObject.findOne({
+            where : { id },
+            include: [User] // Eagerly load the assigned User(s)
+        })
         return res.json({ trackedUserObject })
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -59,19 +62,19 @@ exports.register = async (req, res) => {
 };
 
 exports.update = async(req, res) => {
-    const { id, name, desc, is_locked } = req.body;
+    const { id, name, desc, description, is_locked } = req.body;
     
     try {
         let trackedUserObject = await TrackedUserObject.findOne({where : { id }})
-        if (trackedUserObject != "")
-            trackedUserObject.name = name;
-        if (battery != "")
-            trackedUserObject.desc = desc;
-        if (battery != "")
-            trackedUserObject.is_locked = Boolean(is_locked);
-        trackedUserObject.save();
+        if (trackedUserObject) {
+            if (name !== undefined) trackedUserObject.name = name;
+            if (description !== undefined) trackedUserObject.description = description;
+            else if (desc !== undefined) trackedUserObject.description = desc;
+            if (is_locked !== undefined) trackedUserObject.is_locked = Boolean(is_locked);
+            await trackedUserObject.save();
+        }
 
-        return res.status(201).json(trackedUserObject);
+        return res.status(200).json(trackedUserObject);
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }

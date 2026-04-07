@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User , TUO} from '../API/interfaces.ts'
-import { testUsers } from '../API/testData.ts'
 import {
     AppBar,
+    Autocomplete,
     Button,
     Dialog,
     DialogActions,
@@ -44,14 +44,6 @@ const Settings: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                if (true)
-                {
-                    for (let user of testUsers)
-                    {
-                        await userAPI.postUser(user);
-                        console.log("you have gotten here");
-                    }
-                }
                 
                 const [fetchedWorkers, fetchedAdmins] = await Promise.all([
                     userAPI.getUsersByRole('worker'),
@@ -101,6 +93,9 @@ const Settings: React.FC = () => {
 
     // --- Action Handlers ---
     const handleAddWorker = async () => {
+        if (!newWorkerName.trim() || !newWorkerEmail.trim() || !newWorkerPassword.trim()) return;
+        if (!newWorkerEmail.includes('@')) return;
+
         try {
             // TODO: Ensure error handling is robust in userAPI.postUser
             await userAPI.postUser({
@@ -196,6 +191,8 @@ const Settings: React.FC = () => {
     };
 
     const handleAssignTUO = async () => {
+        if (!selectedWorker || !selectedTUO) return;
+
         if (selectedWorker && selectedTUO) {
             try {
                 await TUOAPI.assignTUO(selectedTUO, selectedWorker);
@@ -227,7 +224,12 @@ const Settings: React.FC = () => {
                     <TextField label="Name" size="small" value={newWorkerName} onChange={e => setNewWorkerName(e.target.value)} />
                     <TextField label="Email" size="small" type="email" value={newWorkerEmail} onChange={e => setNewWorkerEmail(e.target.value)} />
                     <TextField label="Password" size="small" type="password" value={newWorkerPassword} onChange={e => setNewWorkerPassword(e.target.value)} />
-                    <Button variant="contained" color="primary" onClick={handleAddWorker}>
+                    <Button 
+                        variant="contained" 
+                        color="primary" 
+                        onClick={handleAddWorker}
+                        disabled={!newWorkerName.trim() || !newWorkerEmail.trim() || !newWorkerPassword.trim() || !newWorkerEmail.includes('@')}
+                    >
                         Add Worker
                     </Button>
                 </Paper>
@@ -239,7 +241,7 @@ const Settings: React.FC = () => {
                         {workers.map((worker) => (
                             <React.Fragment key={worker.id}>
                                 <ListItem>
-                                    <ListItemText primary={worker.name + (worker.role === 'admin' ? ' (A)' : '')} />
+                                    <ListItemText primary={(typeof worker.name === 'object' ? JSON.stringify(worker.name) : worker.name) + (worker.role === 'admin' ? ' (A)' : '')} />
                                     <ListItemSecondaryAction>
                                         <IconButton edge="end" aria-label="more" onClick={(e) => handleWorkerMenuOpen(e, worker.id)}>
                                             <MoreVertIcon />
@@ -264,19 +266,30 @@ const Settings: React.FC = () => {
                 {/* Assign TUO Section */}
                 <Paper style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <Typography variant="h6">Assign TUO to Worker</Typography>
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Worker</InputLabel>
-                        <Select value={selectedWorker} label="Worker" onChange={(e) => setSelectedWorker(e.target.value as string)}>
-                            {workers.map(w => <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>)}
-                        </Select>
-                    </FormControl>
-                    <FormControl fullWidth size="small">
-                        <InputLabel>Tracker</InputLabel>
-                        <Select value={selectedTUO} label="Tracker" onChange={(e) => setSelectedTUO(e.target.value as string)}>
-                            {tuos.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
-                        </Select>
-                    </FormControl>
-                    <Button variant="contained" color="secondary" onClick={handleAssignTUO}>
+                    <Autocomplete
+                        fullWidth
+                        size="small"
+                        options={workers}
+                        getOptionLabel={(option) => typeof option.name === 'object' ? JSON.stringify(option.name) : option.name}
+                        value={workers.find(w => w.id === selectedWorker) || null}
+                        onChange={(event, newValue) => setSelectedWorker(newValue ? newValue.id : '')}
+                        renderInput={(params) => <TextField {...params} label="Worker" />}
+                    />
+                    <Autocomplete
+                        fullWidth
+                        size="small"
+                        options={tuos}
+                        getOptionLabel={(option) => typeof option.name === 'object' ? JSON.stringify(option.name) : option.name}
+                        value={tuos.find(t => t.id === selectedTUO) || null}
+                        onChange={(event, newValue) => setSelectedTUO(newValue ? newValue.id : '')}
+                        renderInput={(params) => <TextField {...params} label="Tracker" />}
+                    />
+                    <Button 
+                        variant="contained" 
+                        color="secondary" 
+                        onClick={handleAssignTUO}
+                        disabled={!selectedWorker || !selectedTUO}
+                    >
                         Assign TUO
                     </Button>
                 </Paper>
